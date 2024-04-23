@@ -16,6 +16,7 @@ class WTFMethod(BaseModel):
     yearly_recharge = models.FloatField(null=True, blank=True)
 
 
+
 class QData(BaseModel):
     wtf = models.ForeignKey(WTFMethod, on_delete=models.CASCADE, related_name='wtf_q_data')
     QP_n = models.FloatField()
