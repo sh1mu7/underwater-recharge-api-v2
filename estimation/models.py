@@ -10,9 +10,10 @@ class WTFMethod(BaseModel):
     wt_max = models.FloatField()
     wt_min = models.FloatField()
     num_layers = models.IntegerField()
-    time_period = models.FloatField()
-    is_precipitation_given = models.BooleanField()
-    precipitation_percentage = models.FloatField(blank=True, null=True)
+    is_precipitation_given = models.BooleanField(default=True)
+    precipitation = models.FloatField()
+    ratio = models.FloatField(null=True, blank=True)
+    yearly_recharge = models.FloatField(null=True, blank=True)
 
 
 class QData(BaseModel):
@@ -30,7 +31,7 @@ class QData(BaseModel):
 class SPYieldData(BaseModel):
     wtf = models.ForeignKey(WTFMethod, on_delete=models.CASCADE, related_name='wtf_spy_yield_data')
     layer_height = models.FloatField()
-    sp_yield_percentage = models.IntegerField()
+    sp_yield_percentage = models.FloatField()
 
 
 class Temperature(BaseModel):
@@ -41,7 +42,6 @@ class Temperature(BaseModel):
     def save(self, *args, **kwargs):
         self.t_mean = (self.t_max + self.t_min) / 2
         super().save(*args, **kwargs)
-
 
 
 class ClimateDataPMFull(BaseModel):

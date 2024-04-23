@@ -9,6 +9,7 @@ from .serializers import WTFMethodSerializer, WBMethodSerializer
 from ... import constants
 from ...models import WTFMethod, SPYieldData, QData, WBMethodData, ClimateDataPMFull, ClimateDataPMSH, Temperature
 from ...utils import eto_methods
+from ...utils.calculate_yearly_recharge import calculate_yearly_recharge
 from ...utils.eto_methods import hargreaves_method
 
 
@@ -23,41 +24,30 @@ class WTFMethodAPIView(APIView):
             wt_max = serializer.validated_data['wt_max']
             wt_min = serializer.validated_data['wt_min']
             num_layers = serializer.validated_data['num_layers']
-            time_period = serializer.validated_data['time_period']
-            is_precipitation_given = serializer.validated_data['is_precipitation_given']
-            precipitation_percentage = serializer.validated_data.get('precipitation_percentage', None)
+            precipitation = serializer.validated_data.get('precipitation', None)
             Q_data = serializer.validated_data['Q_data']
             sp_yield_data = serializer.validated_data['sp_yield_data']
+            for entry in Q_data:
+                for key, value in entry.items():
+                    entry[key] = float(value)
 
-            Sum_Q = sum(sum(month_data.values()) for month_data in Q_data)
-            D = (Sum_Q / catchment_area) * 0.001
-            SumY = sum(layer['layer_height'] * layer['sp_yield_percentage'] for layer in
-                       sp_yield_data)
-            Yc = SumY / sum(layer['layer_height'] for layer in sp_yield_data)
-            WTD = wt_max - wt_min
-            Re = WTD / Yc
-            T = time_period
-            Re /= T
-            RO = Sum_Q - Re * catchment_area
+            # Convert string values to floats in sp_yield_data
+            for entry in sp_yield_data:
+                entry['layer_height'] = float(entry['layer_height'])
+                entry['sp_yield_percentage'] = float(entry['sp_yield_percentage'])
 
-            if is_precipitation_given:
-                Ratio = 100 * Re / precipitation_percentage
-                if Ratio > 40:
-                    return Response({
-                        "message": f"The Calculated Recharge (mm) is: {Re}. Seems high!! Please Check the input Data."},
-                        status=status.HTTP_400_BAD_REQUEST)
-            result = {
-                'message': 'Calculation performed successfully',
-                'yearly_recharge_mm': Re,
-                'runoff_mm': RO
-            }
-            wtf_object = WTFMethod.objects.create(
-                user=self.request.user, catchment_area=catchment_area, wt_max=wt_max, wt_min=wt_min,
-                num_layers=num_layers, time_period=time_period, is_precipitation_given=is_precipitation_given,
-                precipitation_percentage=precipitation_percentage
-            )
-            wtf_object.save()
-            return Response(result, status=status.HTTP_200_OK)
+            result = calculate_yearly_recharge(catchment_area, wt_max, wt_min, num_layers, sp_yield_data, precipitation,
+                                               Q_data)
+            wtf_data_object = WTFMethod.objects.create(user=self.request.user, catchment_area=catchment_area,
+                                                       wt_max=wt_max, wt_min=wt_min, num_layers=num_layers,
+                                                       is_precipitation_given=True, precipitation=precipitation,
+                                                       yearly_recharge=result['YearlyRecharge'], ratio=result['Ratio'])
+
+            q_data_instances = [QData.objects.create(wtf=wtf_data_object, **entry) for entry in Q_data]
+            sp_yield_data_instances = [SPYieldData.objects.create(wtf=wtf_data_object, **entry) for entry in
+                                       sp_yield_data]
+            wtf_data_object.save()
+            return Response({'result': result}, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -335,7 +325,7 @@ class WBMethodAPIView(APIView):
 
             # Total normal (WB) recharge in volume _V-ReN
             V_ReN = Sum_VRe
-            io_recharge=[1,3,5,6,7,8,9,10,11,12,13,14]
+            io_recharge = [1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 
             # Reading components from io_recharge
             SumRQ = sum([sum(r.values()) for r in io_recharge])

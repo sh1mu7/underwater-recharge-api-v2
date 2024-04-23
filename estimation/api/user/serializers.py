@@ -18,13 +18,13 @@ class SPYieldDataSerializer(serializers.ModelSerializer):
 
 
 class WTFDataSerializer(serializers.ModelSerializer):
-    sp_yield_data = SPYieldDataSerializer(many=True)
-    Q_data = QDataSerializer(many=True)
+    wtf_spy_yield_data = SPYieldDataSerializer(many=True, read_only=True)
+    wtf_q_data = QDataSerializer(many=True, read_only=True)
 
     class Meta:
         model = WTFMethod
-        fields = ['catchment_area', 'wt_max', 'wt_min', 'time_period', 'num_layers',
-                  'is_precipitation_given', 'precipitation_percentage', 'Q_data', 'sp_yield_data']
+        fields = ['catchment_area', 'wt_max', 'wt_min', 'num_layers',
+                  'is_precipitation_given', 'precipitation', 'wtf_q_data', 'wtf_spy_yield_data']
 
 
 class WTFMethodSerializer(serializers.ModelSerializer):
@@ -33,8 +33,7 @@ class WTFMethodSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WTFMethod
-        fields = ['catchment_area', 'wt_max', 'wt_min', 'time_period', 'num_layers',
-                  'is_precipitation_given', 'precipitation_percentage', 'Q_data', 'sp_yield_data']
+        fields = ['catchment_area', 'wt_max', 'wt_min', 'num_layers', 'precipitation', 'Q_data', 'sp_yield_data']
 
     def validate(self, data):
         """
@@ -42,7 +41,6 @@ class WTFMethodSerializer(serializers.ModelSerializer):
         """
         num_layers = data.get('num_layers')
         sp_yield_data = data.get('sp_yield_data', [])
-        print(f'num_layers: {num_layers}, sp_yield_data: {len(sp_yield_data)}')
         if num_layers is not None and len(sp_yield_data) != num_layers:
             raise serializers.ValidationError("Number of layers does not match the provided data.")
         input_values = data.get('Q_data', [])
