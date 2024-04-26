@@ -3,7 +3,44 @@ import math
 from rest_framework import serializers
 
 
-def fao_combined_pm_method(latitude, elevation, climatic_data):
+def eto_method_validation(data):
+    eto_method = data.get('eto_method')
+    land_use_area = data.get('land_use_area')
+    kc_value = data.get('kc_value')
+    cn_value = data.get('cn_value')
+    if len(land_use_area) != 36:
+        raise serializers.ValidationError({"error": "The length of land_use_area must be 36"})
+    elif kc_value is not None and len(kc_value) != 36:
+        raise ValueError("Length of kc_value is not equal to 36.")
+    elif cn_value is not None and len(cn_value) != 36:
+        raise serializers.ValidationError({"error": "The length of cn_value must be 36"})
+    required_fields_map = {
+        1: ['latitude', 'elevation', 'eto_rs_data'],
+        2: ['latitude', 'elevation', 'eto_sh_data'],
+        3: ['latitude', 'elevation', 'eto_sh_data'],
+        4: ['latitude', 'c_value', 't_mean_value'],
+        5: ['latitude', 'elevation', 'solar_radiation', 'temperature'],
+        6: ["latitude", "t_mean_value"],
+        7: ['latitude', 'elevation', 'solar_radiation', 'temperature'],
+        8: ["solar_radiation", "rh_value", "temperature"],
+        9: ['latitude', 'elevation', 'solar_radiation', 'temperature'],
+        10: ["c_value", "solar_radiation", "temperature"],
+        11: ["c_value", 'solar_radiation'],
+        12: ["solar_radiation", "t_mean_value", "p_value"]
+        #     TODO: Need to add required field.
+    }
+
+    required_fields = required_fields_map.get(eto_method, [])
+    missing_fields = [field for field in required_fields if data.get(field) is None]
+
+    if missing_fields:
+        missing_fields_str = ', '.join(missing_fields)
+        raise serializers.ValidationError(
+            f"{missing_fields_str.capitalize()} {'and' if len(missing_fields) > 1 else ''} {'are' if len(missing_fields) > 1 else 'is'} required for eto_method {eto_method}"
+        )
+
+
+def fao_combined_pm_method(latitude, elevation, eto_rs_data):
     """
     Calculate Yearly ET0 using the FAO Combined P-M method with Rs option 1.1.
 
@@ -22,15 +59,12 @@ def fao_combined_pm_method(latitude, elevation, climatic_data):
     # Initialize variables
     SumET0 = 0
 
-    print(f'climatic_data: {climatic_data}\n climatic_data_type: {type(climatic_data)}')
-
     for r in range(36):
-        P_r = climatic_data[r]['P_r']
-        Tmax_r = climatic_data[r]['Tmax_r']
-        Tmin_r = climatic_data[r]['Tmin_r']
-        RH_r = climatic_data[r]['RH_r']
-        WS_r = climatic_data[r]['WS_r']
-        SR_r = climatic_data[r]['SR_r']
+        Tmax_r = eto_rs_data[r]['Tmax_r']
+        Tmin_r = eto_rs_data[r]['Tmin_r']
+        RH_r = eto_rs_data[r]['RH_r']
+        WS_r = eto_rs_data[r]['WS_r']
+        SR_r = eto_rs_data[r]['SR_r']
 
         # Calculation of mean temperature
         Tmean_r = (Tmax_r + Tmin_r) / 2
@@ -77,18 +111,17 @@ def fao_combined_pm_method(latitude, elevation, climatic_data):
     return YET0
 
 
-def pm_method_sh(latitude, elevation, climatic_data):
+def pm_method_sh(latitude, elevation, eto_sh_data):
     Lambda = 2.4536
     SumET0 = 0
-    print(f'length of climatic_data: {len(climatic_data)}')
+    print(f'length of climatic_data: {len(eto_sh_data)}')
 
-    for r in range(1, len(climatic_data)):
-        P_r = climatic_data[r]['P_r']
-        Tmax_r = climatic_data[r]['Tmax_r']
-        Tmin_r = climatic_data[r]['Tmin_r']
-        RH_r = climatic_data[r]['RH_r']
-        WS_r = climatic_data[r]['WS_r']
-        SH_r = climatic_data[r]['SH_r']
+    for r in range(1, len(eto_sh_data)):
+        Tmax_r = eto_sh_data[r]['Tmax_r']
+        Tmin_r = eto_sh_data[r]['Tmin_r']
+        RH_r = eto_sh_data[r]['RH_r']
+        WS_r = eto_sh_data[r]['WS_r']
+        SH_r = eto_sh_data[r]['SH_r']
 
         # Calculation of Ra
         J_t = 10 * r - 5
@@ -131,12 +164,10 @@ def pm_method_sh(latitude, elevation, climatic_data):
 
     # Calculation of Yearly ET0
     YET0 = SumET0 + (ET0_r * 5)  # Multiply by 5 as there are 36 periods
-
     return YET0
 
 
-def pm_method_no_rs_sh(latitude, elevation, climatic_data):
-
+def pm_method_no_rs_sh(latitude, elevation, eto_sh_data):
     Lambda = 2.4536
     SumET0 = 0
     Lrad = latitude * 22 / (180 * 7)
@@ -144,12 +175,11 @@ def pm_method_no_rs_sh(latitude, elevation, climatic_data):
     P = 101.3 * ((293 - 0.0065 * Z) / 293) ** 5.26
     Gama = 0.00163 * P / Lambda
 
-    for t in range(1, len(climatic_data)):
-        P_r = climatic_data[t]['P_r']
-        Tmax_r = climatic_data[t]['Tmax_r']
-        Tmin_r = climatic_data[t]['Tmin_r']
-        RH_r = climatic_data[t]['RH_r']
-        WS_r = climatic_data[t]['WS_r']
+    for t in range(1, len(eto_sh_data)):
+        Tmax_r = eto_sh_data[t]['Tmax_r']
+        Tmin_r = eto_sh_data[t]['Tmin_r']
+        RH_r = eto_sh_data[t]['RH_r']
+        WS_r = eto_sh_data[t]['WS_r']
         J_t = 10 * t - 5
         del_t = 0.409 * math.sin(0.0172 * J_t - 1.39)
         dr_t = 1 + 0.033 * math.cos(0.0172 * J_t)
@@ -203,9 +233,23 @@ def pm_method_no_rs_sh(latitude, elevation, climatic_data):
     return YET0
 
 
-def fao_blaney_criddle_method(latitude, c_values, temperature_data):
+def fao_blaney_criddle_method(latitude, c_values, t_mean_value):
+    """
+    Calculate reference evapotranspiration (ETO) using the FAO Blaney-Criddle method.
+
+    Args:
+        latitude (float): Latitude of the location in decimal degrees.
+        c_values (list of float): List of C values for each time period.
+        t_mean_value (list of float): List of mean temperature values for each time period.
+
+    Returns:
+        float: Calculated reference evapotranspiration (ETO) value.
+
+    Note:
+        - The length of 'c_values' and 't_mean_value' lists should be equal.
+    """
     # Convert latitude to radians
-    Lrad = latitude * 22 / (180 * 7)
+    Lrad = latitude * math.pi / 180
 
     # Initialize variables
     sumN = 0
@@ -214,7 +258,7 @@ def fao_blaney_criddle_method(latitude, c_values, temperature_data):
     # Calculate yearly N (YN) and p values
     YN = 0
     p_values = []
-    for i, temp_data in enumerate(temperature_data):
+    for i, temp_data in enumerate(t_mean_value):
         J_t = 10 * (i + 1) - 5
         del_t = 0.409 * math.sin(0.0172 * J_t - 1.39)
         dr_t = 1 + 0.033 * math.cos(0.0172 * J_t)
@@ -228,7 +272,7 @@ def fao_blaney_criddle_method(latitude, c_values, temperature_data):
         p_values.append(p_t)
 
         # Calculate mean temperature
-        T_mean = (temp_data['t_max'] + temp_data['t_min']) / 2
+        T_mean = temp_data
 
         # Calculate ET0 values
         c_t = c_values[i]
@@ -242,7 +286,7 @@ def fao_blaney_criddle_method(latitude, c_values, temperature_data):
     return YET0
 
 
-def makkink_method(latitude, elevation, rs_data, temperature_data):
+def makkink_method(latitude, elevation, solar_radiation, temperature):
     # Constants
     Lambda = 2.4536
     Lrad = math.radians(latitude)
@@ -260,9 +304,9 @@ def makkink_method(latitude, elevation, rs_data, temperature_data):
     Tmean_sum = 0
 
     # Calculate delta and Tmean for each time step and simultaneously calculate ET0
-    for i in range(len(rs_data)):
-        Rs = rs_data[i]
-        temp_data = temperature_data[i % len(temperature_data)]  # Use modulo to cycle through temperature data
+    for i in range(len(solar_radiation)):
+        Rs = solar_radiation[i]
+        temp_data = temperature[i % len(temperature)]  # Use modulo to cycle through temperature data
 
         # Extract temperature values
         t_max = temp_data['t_max']
@@ -287,18 +331,21 @@ def makkink_method(latitude, elevation, rs_data, temperature_data):
     return YET0
 
 
-def hargreaves_method(latitude, temperature_data):
+def hargreaves_method(latitude, t_mean_value):
     """
     Calculate ET0 using Hargreaves method.
 
     Args:
-    - latitude (float): Latitude in degrees.
-    - temperature_data (list): List of dictionaries containing temperature data for each day.
+        latitude (float): Latitude in degrees.
+        t_mean_value (list): List of mean temperature values for each day.
 
     Returns:
-    - yet0 (float): Yearly ET0 value.
+        float: Yearly ET0 value.
+
+    Raises:
+        ValueError: If the length of 't_mean_value' is not 36.
     """
-    if len(temperature_data) != 36:
+    if len(t_mean_value) != 36:
         raise ValueError("Temperature data should be provided for 36 days.")
 
     # Convert latitude to radians
@@ -313,8 +360,7 @@ def hargreaves_method(latitude, temperature_data):
 
     for t in range(36):
         # Extract temperature data for the current day
-        tmax = temperature_data[t]["t_max"]
-        tmin = temperature_data[t]["t_min"]
+        tmean = t_mean_value[t]
 
         # Calculate J, del, dr, ws
         j = (10 * (t + 1)) - 5
@@ -327,24 +373,23 @@ def hargreaves_method(latitude, temperature_data):
                 (ws * math.sin(phi_rad) * math.sin(delta)) + (math.cos(phi_rad) * math.cos(delta) * math.sin(ws)))
 
         # Calculate ET0
-        tmean = (tmax + tmin) / 2
-        et0 = (0.0023 * ra / lambda_value) * (tmean + 17.8) * math.sqrt(tmax - tmin)
+        et0 = (0.0023 * ra / lambda_value) * (tmean + 17.8) * math.sqrt(0.75 * (tmean - 18))
 
         # Add ET0 to sumET0
-        sum_et0 += et0 * 10
+        sum_et0 += et0
 
     # Calculate Yearly ET0
-    yet0 = sum_et0 + (et0 * 5)
+    yet0 = sum_et0
 
     return yet0
 
 
-def hansen_method(latitude, elevation, rs_value, temperature_data):
+def hansen_method(latitude, elevation, solar_radiation, temperature):
     """
     Calculate ET0 using Hansen (1984) method.
 
     Args:
-    - temperature_data (list): List of dictionaries containing maximum and minimum temperature data for 36 days.
+    - temperature (list): List of dictionaries containing maximum and minimum temperature data for 36 days.
     - rs_value (list): List of Rs values for 36 days.
     - latitude (float): Latitude in degrees.
     - elevation (float): Elevation in meters.
@@ -352,7 +397,7 @@ def hansen_method(latitude, elevation, rs_value, temperature_data):
     Returns:
     - yet0 (float): Yearly ET0 value.
     """
-    if len(temperature_data) != 36 or len(rs_value) != 36:
+    if len(temperature) != 36 or len(solar_radiation) != 36:
         raise ValueError("Temperature data and Rs values should be provided for 36 days.")
 
     # Convert latitude to radians
@@ -373,8 +418,8 @@ def hansen_method(latitude, elevation, rs_value, temperature_data):
 
     for k in range(36):
         # Calculate Tmean
-        t_max = temperature_data[k]['t_max']
-        t_min = temperature_data[k]['t_min']
+        t_max = temperature[k]['t_max']
+        t_min = temperature[k]['t_min']
         t_mean = (t_max + t_min) / 2
 
         # Calculate delta
@@ -382,7 +427,7 @@ def hansen_method(latitude, elevation, rs_value, temperature_data):
         delta = 4098 * ea / math.pow((t_mean + 237.3), 2)
 
         # Calculate ET0
-        et0 = (0.7 * rs_value[k] * delta) / ((delta + gama) * lambda_value)
+        et0 = (0.7 * solar_radiation[k] * delta) / ((delta + gama) * lambda_value)
 
         # Add ET0 to sumET0
         sum_et0 += et0 * 10
@@ -393,12 +438,12 @@ def hansen_method(latitude, elevation, rs_value, temperature_data):
     return yet0
 
 
-def turc_method(rs_value, rh_value, temperature_data):
+def turc_method(solar_radiation, rh_value, temperature):
     """
     Calculate ET0 using Turc method.
 
     Args:
-    - temperature_data (list): List of dictionaries containing Tmax and Tmin for 36 days.
+    - temperature (list): List of dictionaries containing Tmax and Tmin for 36 days.
     - rs_data (list): List of Rs values for 36 days.
     - rh_data (list): List of RH values for 36 days.
 
@@ -406,16 +451,16 @@ def turc_method(rs_value, rh_value, temperature_data):
     - yet0 (float): Yearly ET0 value.
     """
 
-    print(f'Temperature: {temperature_data}')
-    if len(temperature_data) != 36 or len(rs_value) != 36 or len(rh_value) != 36:
+    print(f'Temperature: {temperature}')
+    if len(temperature) != 36 or len(solar_radiation) != 36 or len(rh_value) != 36:
         raise ValueError("Data should be provided for all 36 days.")
 
     # Initialize sumET0
     sum_et0 = 0
 
     for t in range(36):
-        tmean = (temperature_data[t]["t_max"] + temperature_data[t]["t_min"]) / 2
-        rs = rs_value[t]
+        tmean = (temperature[t]["t_max"] + temperature[t]["t_min"]) / 2
+        rs = solar_radiation[t]
         rh = rh_value[t]
 
         if rh < 50:
@@ -431,14 +476,14 @@ def turc_method(rs_value, rh_value, temperature_data):
     return yet0
 
 
-def priestley_taylor_method(latitude, elevation, rs_value, temperature_data):
+def priestley_taylor_method(latitude, elevation, solar_radiation, temperature):
     """
     Calculate ET0 using the Priestley-Taylor method.
 
     Args:
     - latitude (float): Latitude in degrees.
     - elevation (float): Elevation in meters.
-    - temperature_data (list): List of dictionaries containing Tmax and Tmin for 36 days.
+    - temperature (list): List of dictionaries containing Tmax and Tmin for 36 days.
     - rs_data (list): List of Rs values for 36 days.
 
     Returns:
@@ -459,8 +504,8 @@ def priestley_taylor_method(latitude, elevation, rs_value, temperature_data):
 
     for k in range(36):
         # Calculate Tmean
-        tmax = temperature_data[k]["t_max"]
-        tmin = temperature_data[k]["t_min"]
+        tmax = temperature[k]["t_max"]
+        tmin = temperature[k]["t_min"]
         tmean = (tmax + tmin) / 2
 
         # Calculate Delta
@@ -477,7 +522,7 @@ def priestley_taylor_method(latitude, elevation, rs_value, temperature_data):
         )
 
         # Calculate Rn
-        rs = rs_value[k]
+        rs = solar_radiation[k]
         rns = 0.77 * rs
         rnl = (4.903 * (10 ** -9)) * 0.5 * (
                 ((tmax + 273.16) ** 4 + (tmin + 273.16) ** 4) * (0.34 - 0.139 * math.sqrt(ea)) * (
@@ -495,19 +540,19 @@ def priestley_taylor_method(latitude, elevation, rs_value, temperature_data):
     return yet0
 
 
-def jensen_haise_method(c_value, rs_value, temperature_data):
+def jensen_haise_method(c_value, solar_radiation, temperature):
     """
     Calculate ET0 using Jensen-Haise method.
 
     Args:
-    - temperature_data (list): List of dictionaries containing Tmean for 36 days.
+    - temperature (list): List of dictionaries containing Tmean for 36 days.
     - rs_values (list): List of Rs values for 36 days.
     - c_values (list): List of C values for 36 days.
 
     Returns:
     - yet0 (float): Yearly ET0 value.
     """
-    if len(temperature_data) != 36 or len(rs_value) != 36 or len(c_value) != 36:
+    if len(temperature) != 36 or len(solar_radiation) != 36 or len(c_value) != 36:
         raise ValueError("Temperature, Rs, and C data should be provided for all 36 days.")
 
     # Constants
@@ -517,10 +562,10 @@ def jensen_haise_method(c_value, rs_value, temperature_data):
 
     for k in range(36):
         # Calculate Tmean
-        tmean = (temperature_data[k]["t_max"] + temperature_data[k]["t_min"]) / 2
+        tmean = (temperature[k]["t_max"] + temperature[k]["t_min"]) / 2
 
         # Calculate ET0
-        et0 = c_value[k] * (rs_value[k] * (0.025 * tmean + 0.08) / lambda_value)
+        et0 = c_value[k] * (solar_radiation[k] * (0.025 * tmean + 0.08) / lambda_value)
 
         # Add ET0 to sumET0
         sum_et0 += et0 * 10
@@ -531,7 +576,7 @@ def jensen_haise_method(c_value, rs_value, temperature_data):
     return yet0
 
 
-def abtew_method(c_value, rs_value):
+def abtew_method(c_value, solar_radiation):
     """
     Calculate potential evapotranspiration (PET) using Abtew method.
 
@@ -550,7 +595,7 @@ def abtew_method(c_value, rs_value):
 
     for j in range(36):
         # Calculate ET0
-        et0 = c_value[j] * (ki * rs_value[j] / lambda_value)
+        et0 = c_value[j] * (ki * solar_radiation[j] / lambda_value)
 
         # Add ET0 to sumET0
         sum_et0 += et0 * 10
@@ -561,40 +606,54 @@ def abtew_method(c_value, rs_value):
     return yet0
 
 
-def de_bruin_method(rs_value, temperature_data, p):
-    """
-    Calculate potential evapotranspiration (PET) using de Bruin method.
-
-    Args:
-    - rs_values (list): List of Rs values for 36 days.
-    - temperature_data (list): List of dictionaries containing Tmean for 36 days.
-    - L (float): Latitude in degrees.
-    - El (float): Elevation in meters.
-
-    Returns:
-    - yet0 (float): Yearly ET0 value.
-    """
+def de_bruin_method(solar_radiation, t_mean_value, p_value):
     # Constants
-    c_value = 0.65
-    lambda_value = 2.4536
+    C = 0.65
+    Lambda = 2.4536
 
-    # Calculate p and update gama
-    # Lrad = latitude * (22 / (180 * 7))
-    # p = 101.3 * ((293 - 0.0065 * elevation) / 293) ** 5.26
-    gama = 0.00163 * p / lambda_value
+    gamma_values = [0.00163 * P / Lambda for P in p_value]
 
-    # Calculate ET0
-    sum_et0 = 0
-    for q in range(36):
-        tmax = temperature_data[q]["t_max"]
-        tmin = temperature_data[q]["t_min"]
-        tmean = (tmax + tmin) / 2
-        ea = 0.6108 * math.exp((17.27 * tmean) / (tmean + 237.2))
-        delta = 4098 * ea / ((tmean + 237.3) ** 2)
-        et0 = (c_value * rs_value[q] / lambda_value) * (delta / (delta + gama))
-        sum_et0 += et0 * 10
+    # Variables for calculation
+    Delta_values = []
+    ET0_sum = 0
 
-    # Calculate Yearly ET0
-    yet0 = sum_et0 + (et0 * 5)
+    # Calculate Delta for each Tmean value
+    for T in t_mean_value:
+        ea = 0.6108 * math.exp((17.27 * T) / (T + 237.2))
+        Delta = 4098 * ea / ((T + 237.2) ** 2)
+        Delta_values.append(Delta)
 
-    return yet0
+    # Calculate ET0 for each Rs, Tmean, and P value
+    for Rs_val, T_val, Delta_val, gamma_val in zip(solar_radiation, t_mean_value, Delta_values, gamma_values):
+        ET0 = (C * Rs_val / Lambda) * (Delta_val / (Delta_val + gamma_val))
+        ET0_sum += ET0
+
+    # Multiply by 10 to get daily value
+    ET0_sum *= 10
+
+    # Add the last value of ET0 for 5 days
+    ET0_sum += ET0 * 5
+
+    return ET0_sum
+
+#
+# # Example usage with provided data
+# Rs_data = [12.1, 12.1, 12.1, 12.2, 12.2, 12.2, 17.6, 17.6, 17.6, 18.4, 18.4, 18.4,
+#            15.5, 15.5, 15.5, 13.7, 13.7, 13.7, 14.1, 14.1, 14.1, 12.3, 12.3, 12.3,
+#            12.9, 12.9, 12.9, 14.3, 14.3, 14.3, 12.2, 12.2, 12.2, 8.8, 8.8, 8.8]
+#
+# Tmean_data = [18.95, 18.95, 18.95, 19.85, 19.85, 19.85, 24.45, 24.45, 24.45, 27.8,
+#               27.8, 27.8, 28.75, 28.75, 28.75, 29.4, 29.4, 29.4, 29.6, 29.6, 29.6,
+#               29, 29, 29, 28.9, 28.9, 28.9, 27.5, 27.5, 27.5, 24, 24, 24, 18.75,
+#               18.75, 18.75]
+#
+# latitude = 37.7749  # Example latitude in degrees (San Francisco)
+# elevation = 150  # Example elevation in meters
+#
+# # Example P values from the data
+# P_values = [12.1, 12.1, 12.1, 18.7, 18.7, 18.7, 159.0, 159.0, 159.0, 260.0, 260.0, 260.0,
+#             53.7, 53.7, 53.7, 115.3, 115.3, 115.3, 100.0, 100.0, 100.0, 189.7, 189.7, 189.7,
+#             131.7, 131.7, 131.7, 51.0, 51.0, 51.0, 0, 0, 0, 0, 0, 0]
+#
+# ET0_result = calculate_ET0(Rs_data, Tmean_data, latitude, elevation, P_values)
+# print("Estimated ET0:", ET0_result, "mm")

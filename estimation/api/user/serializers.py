@@ -1,8 +1,9 @@
 from rest_framework import serializers
 
 from estimation import constants
-from estimation.models import QData, SPYieldData, WTFMethod, WBMethodData, ClimateDataPMFull, ClimateDataPMSH, \
-    Temperature
+from estimation.models import QData, SPYieldData, WTFMethod, WBMethodData, EtoRsData, Temperature, EtoShData, \
+    LandUseArea, CropCoefficient, CurveNumber, RechargeRate
+from estimation.utils.eto_methods import eto_method_validation
 
 
 class QDataSerializer(serializers.ModelSerializer):
@@ -77,9 +78,9 @@ class TemperatureSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ClimateDataFullSerializer(serializers.ModelSerializer):
+class EtoRsDataSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ClimateDataPMFull
+        model = EtoRsData
         fields = '__all__'
 
         extra_kwargs = {
@@ -87,9 +88,9 @@ class ClimateDataFullSerializer(serializers.ModelSerializer):
         }
 
 
-class ClimateDataPMSHSerializer(serializers.ModelSerializer):
+class EtoShDataSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ClimateDataPMSH
+        model = EtoShData
         fields = '__all__'
 
 
@@ -99,28 +100,28 @@ class InflowOutflowRechargeSerializer(serializers.Serializer):
     rd = serializers.FloatField()
 
 
-class LandUseAreaSerializer(serializers.Serializer):
-    a1 = serializers.FloatField()
-    a2 = serializers.FloatField()
-    a3 = serializers.FloatField()
-    a4 = serializers.FloatField()
-    a5 = serializers.FloatField()
-    a6 = serializers.FloatField()
-    a7 = serializers.FloatField()
+class LandUseAreaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LandUseArea
+        fields = '__all__'
 
 
-class CropCoefficientSerializer(serializers.Serializer):
-    kc_a1 = serializers.FloatField()
-    kc_a2 = serializers.FloatField()
-    kc_a3 = serializers.FloatField()
-    kc_a4 = serializers.FloatField()
+class RechargeRateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RechargeRate
+        fields = '__all__'
 
 
-class CurveNumberSerializer(serializers.Serializer):
-    cn1 = serializers.IntegerField(min_value=0, max_value=100)
-    cn2 = serializers.IntegerField(min_value=0, max_value=100)
-    cn3 = serializers.IntegerField(min_value=0, max_value=100)
-    cn4 = serializers.IntegerField(min_value=0, max_value=100)
+class CropCoefficientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CropCoefficient
+        fields = '__all__'
+
+
+class CurveNumberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CurveNumber
+        fields = '__all__'
 
 
 class WBMethodSerializer(serializers.Serializer):
@@ -130,28 +131,29 @@ class WBMethodSerializer(serializers.Serializer):
     classification = serializers.ChoiceField(choices=constants.ClassificationChoices.choices, required=False)
     eto_method = serializers.ChoiceField(choices=constants.ETO_METHOD_CHOICES)
     temperature = TemperatureSerializer(many=True, required=False)
+    latitude = serializers.FloatField(required=False)
     c_value = serializers.ListSerializer(child=serializers.FloatField(required=False), required=False)
     rh_value = serializers.ListSerializer(child=serializers.FloatField(required=False), required=False)
-
-    rs_value = serializers.ListSerializer(child=serializers.FloatField(required=False), required=False)
-    latitude = serializers.FloatField(required=False)
-    climatic_data_pm_full = ClimateDataFullSerializer(many=True, required=False)
-    climatic_data_pm_sh = ClimateDataPMSHSerializer(many=True, required=False)
-    elevation = serializers.FloatField(required=False)
-    # New WB
-    land_use_area = LandUseAreaSerializer(many=True, required=True)
+    solar_radiation = serializers.ListSerializer(child=serializers.FloatField(required=False), required=False)
     t_mean_value = serializers.ListSerializer(child=serializers.FloatField(required=False), required=False)
     p_value = serializers.ListSerializer(child=serializers.FloatField(required=False), required=False)
     kc_value = CropCoefficientSerializer(many=True, required=False)
     cn_value = CurveNumberSerializer(many=True, required=False)
-    io_recharge = InflowOutflowRechargeSerializer(many=True, required=False)
-    #
+    eto_rs_data = EtoRsDataSerializer(many=True, required=False)
+    eto_sh_data = EtoShDataSerializer(many=True, required=False)
+    elevation = serializers.FloatField(required=False)
+    land_use_area = LandUseAreaSerializer(many=True, required=True)
+    recharge_rate = RechargeRateSerializer(many=True, required=False)
+
+    def validate(self, attrs):
+        eto_method_validation(attrs)
+        return attrs
     # def validate(self, data):
     #     """
     #     Validate method for WBMethodSerializer.
     #     """
-    #     climatic_data_pm_full = data.get('climatic_data_pm_full', [])
-    #     climatic_data_pm_sh = data.get('climatic_data_pm_sh', [])
+    #     eto_rs_data = data.get('eto_rs_data', [])
+    #     eto_sh_data = data.get('eto_sh_data', [])
     #     temperature = data.get('temperature')
     #     eto_method = data.get('eto_method')
     #     rs_value = data.get('rs_value')
@@ -160,7 +162,7 @@ class WBMethodSerializer(serializers.Serializer):
     #     latitude = data.get('latitude')
     #     elevation = data.get('elevation')
     #     if eto_method == constants.ETO_METHOD_CHOICES.FAO_COMBINED_PM_METHOD:
-    #         for period_data in climatic_data_pm_full:
+    #         for period_data in eto_rs_data:
     #             P_r = period_data.get('P_r', 0)
     #             Tmax_r = period_data.get('Tmax_r', 0)
     #             Tmin_r = period_data.get('Tmin_r', 0)
@@ -194,7 +196,7 @@ class WBMethodSerializer(serializers.Serializer):
     #             elif WS_r < 0:
     #                 raise serializers.ValidationError(f'Wind speed < 0: {WS_r}. Check the data.')
     #     elif eto_method == constants.ETO_METHOD_CHOICES.PM_SH:
-    #         for period_data in climatic_data_pm_sh:
+    #         for period_data in eto_sh_data:
     #             P_r = period_data.get('P_r', 0)
     #             Tmax_r = period_data.get('Tmax_r', 0)
     #             Tmin_r = period_data.get('Tmin_r', 0)
@@ -228,7 +230,7 @@ class WBMethodSerializer(serializers.Serializer):
     #             elif WS_r < 0:
     #                 raise serializers.ValidationError(f'Wind speed < 0: {WS_r}. Check the data.')
     #     elif eto_method == constants.ETO_METHOD_CHOICES.PM_NO_SH_RS:
-    #         for period_data in climatic_data_pm_sh:
+    #         for period_data in eto_sh_data:
     #             P_r = period_data.get('P_r', 0)
     #             Tmax_r = period_data.get('Tmax_r', 0)
     #             Tmin_r = period_data.get('Tmin_r', 0)

@@ -551,3 +551,156 @@ wtf_method = {
 # }
 
 
+def handle_land_use_area(land_use_area):
+    for L, row in enumerate(land_use_area, 1):
+        SM_L = sum(row.values())
+        ER_L = 100 - SM_L
+        if -5 <= ER_L <= 0:
+            land_use_area[L - 1]["a7"] -= ER_L
+        elif 0 < ER_L <= 5:
+            land_use_area[L - 1]["a7"] += ER_L
+        else:
+            return Response(
+                {"error": f"Sum of land-use components must be equal to 100, Line number {L}, Stop"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+def calculate_eto_method(eto_method, latitude, elevation, climatic_data_pm_full, climatic_data_pm_sh, temperature_data):
+    YETO = None
+    try:
+        if eto_method == constants.ETO_METHOD_CHOICES.FAO_COMBINED_PM_METHOD:
+            climate_data_instances = [ClimateDataPMFull.objects.create(**data) for data in climatic_data_pm_full]
+            YETO = eto_methods.fao_combined_pm_method(latitude, elevation, climatic_data_pm_full)
+        elif eto_method == constants.ETO_METHOD_CHOICES.PM_SH:
+            climate_data_instances = [ClimateDataPMSH.objects.create(**data) for data in climatic_data_pm_sh]
+            YETO = eto_methods.pm_method_sh(latitude, elevation, climatic_data_pm_sh)
+        # Add other eto methods here
+        # ...
+    except ValidationError as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    return YETO
+
+def calculate_recharge(land_use_area, recharge_rate, p_value):
+    io_recharge = [1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    SumRQ = sum([sum(r.values()) for r in io_recharge])
+    RP_values = [r["re_pervious"] for r in recharge_rate]
+    RW_values = [r["re_water_body"] for r in recharge_rate]
+    SumPW = sum([(RP_values[i] * land_use_area[i]["a5"] * 10 + RW_values[i] * land_use_area[i]["a6"] * 10) for i in range(36)])
+    FRD = SumPW
+    VSum_Ra = V_ReN + FRD
+    Sum_P = sum(p_value)
+    A = sum([sum(area.values()) for area in land_use_area])
+    Rad = (VSum_Ra / A) * 0.001
+    Ro = 0
+    Answer = 1
+    RF = 0.9
+    if Answer == 1:
+        Rad *= RF
+    Ratio_Ra_P = Rad / Sum_P
+    Ratio_Ro_P = Ro / Sum_P
+    AI = Sum_P / sum(data["t_mean_value"])
+    PRa = 100 * Rad / Sum_P
+    PRo = 100 * Ro / Sum_P
+    if PRa > 40:
+        print("The Recharge as a percentage of Rainfall is too high! Please Check the input Data")
+    else:
+        print("Yearly Rainfall (mm) =", Sum_P)
+        print("Yearly Recharge (mm) =", Rad)
+        print("Yearly Runoff (mm) =", Ro)
+        print("Yearly Recharge as a percentage of Precipitation =", PRa)
+        print("Yearly Runoff as a percentage of Rainfall =", PRo)
+        print("Aridity Index (AI) =", AI)
+        print(".............................................................................................................")
+        print("End of Calculation")
+
+def calculate_volumes(land_use_area, kc_value, cn_value, p_value, t_mean_value, YETO):
+    v_sum_etp = 0
+    v_sum_eta = 0
+    v_sum_ro = 0
+    Sum_VRe = 0
+
+    for row in land_use_area:
+        a1, a2, a3, a4 = row['a1'], row['a2'], row['a3'], row['a4']
+        total_area = a1 + a2 + a3 + a4
+        for kc_value, cn_value in zip(kc_value, cn_value):
+            for k in range(1, 5):
+                Ark = row[f'a{k}']
+                A = total_area / 100
+                Pr = 100
+                kc_a = kc_value.get(f'kc_a{k}')
+                cn = cn_value.get(f'cn{k}')
+                ETrk = YETO * kc_a
+                v_sum_etp += (ETrk * 10) * (Ark * A * 10)
+                if ETrk <= Pr:
+                    ETark = Pr
+                else:
+                    S = (1000 / cn) - 10
+                    ajk = (Pr - ETrk - 0.2 * S) ** 2
+                    bjk = (Pr - ETrk + 0.8 * S)
+                    ETark = ajk / bjk
+                v_sum_eta += (ETark * 10) * (Ark * A * 10)
+
+        for j, row in enumerate(land_use_area):
+            for k in range(1, 5):
+                Ark = row[f'a{k}']
+                Pj = p_value[j]
+                ETajk = t_mean_value[j]
+                CNjk = cn_value[j][f'cn{k}']
+                Sjk = (1000 / CNjk) - 10
+                ajk = (Pj - ETajk - 0.2 * Sjk) ** 2
+                bjk = (Pj - ETajk + 0.8 * Sjk)
+                Qjk = ajk / bjk
+                Rojk = Qjk
+                VRojk = (Rojk * 10) * (Ark * A * 10)
+                v_sum_ro += VRojk
+
+        for j in range(36):
+            for k in range(4):
+                Ajk = land_use_area[j]["a" + str(k + 1)]
+                ETajk = 10
+                R0jk = 5
+                QOutjk = ETajk + R0jk
+                Pk = p_value[j]
+                if QOutjk < Pk:
+                    Rejk = Pk - QOutjk
+                    VRejk = Rejk * 10 * Ajk * 10
+                else:
+                    VRejk = 0
+                Sum_VRe += VRejk
+    V_ReN = Sum_VRe
+
+def post(self, request, *args, **kwargs):
+    serializer = WBMethodSerializer(data=request.data)
+    if serializer.is_valid():
+        catchment_area = serializer.validated_data.get('catchment_area')
+        rlc = serializer.validated_data.get('rlc')
+        rp = serializer.validated_data.get('rp')
+        classification = serializer.validated_data.get('classification')
+        eto_method = serializer.validated_data.get('eto_method')
+        latitude = serializer.validated_data.get('latitude')
+        temperature_data = serializer.validated_data.get('temperature')
+        climatic_data_pm_full = serializer.validated_data.get('eto_rs_data', None)
+        climatic_data_pm_sh = serializer.validated_data.get('eto_sh_data')
+        elevation = serializer.validated_data.get('elevation')
+        c_value = serializer.validated_data.get('c_value')
+        rs_value = serializer.validated_data.get('rs_value')
+        rh_value = serializer.validated_data.get('rh_value')
+        t_mean_value = serializer.validated_data.get('t_mean_value')
+        p_value = serializer.validated_data.get('p_value')
+        kc_value = serializer.validated_data.get('kc_value')
+        cn_value = serializer.validated_data.get('cn_value')
+        recharge_rate = serializer.validated_data.get('recharge_rate')
+        land_use_area = serializer.validated_data.get('land_use_area')
+
+        handle_land_use_area(land_use_area)
+        YETO = calculate_eto_method(eto_method, latitude, elevation, climatic_data_pm_full, climatic_data_pm_sh, temperature_data)
+        calculate_volumes(land_use_area, kc_value, cn_value, p_value, t_mean_value, YETO)
+        calculate_recharge(land_use_area, recharge_rate, p_value)
+
+        result = {
+            'message': 'Calculation performed successfully',
+            'Yearly eto calculation': YETO
+        }
+        return Response(result, status=status.HTTP_200_OK)
+    else:
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

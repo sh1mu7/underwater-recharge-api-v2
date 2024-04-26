@@ -16,13 +16,13 @@ def calculate_yearly_recharge(catchment_area, wt_max, wt_min, num_layers, sp_yie
     Re = WTD * 1000 / Yc
 
     if Re > 1000:
-        return {'error': 'The Calculated Recharge (mm) is:", Re, "Seems high!! Please check the input Data'}
+        return {'error': f'The Calculated Recharge (mm) is: {Re}. Seems high!! Please check the input Data'}
 
     # Calculate Recharge: Rainfall Ratio and check for accuracy
     Ratio = 100 * Re / precipitation
     if Ratio > 40:
         return {
-            'error': f"The Calculated Recharge as a percentage of precipitation is: {Ratio} Seems high!! Please check "
-                     f"the input Data"}
+            'error': f'The Calculated Recharge as a percentage of precipitation is: {Ratio}. Seems high!! Please check the input Data'}
+
     result = {'Ratio': Ratio, 'YearlyRecharge': Re}
     return result

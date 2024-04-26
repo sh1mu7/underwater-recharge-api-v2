@@ -16,7 +16,6 @@ class WTFMethod(BaseModel):
     yearly_recharge = models.FloatField(null=True, blank=True)
 
 
-
 class QData(BaseModel):
     wtf = models.ForeignKey(WTFMethod, on_delete=models.CASCADE, related_name='wtf_q_data')
     QP_n = models.FloatField()
@@ -45,8 +44,7 @@ class Temperature(BaseModel):
         super().save(*args, **kwargs)
 
 
-class ClimateDataPMFull(BaseModel):
-    P_r = models.FloatField()
+class EtoRsData(BaseModel):
     Tmax_r = models.FloatField()
     Tmin_r = models.FloatField()
     RH_r = models.FloatField()
@@ -55,13 +53,41 @@ class ClimateDataPMFull(BaseModel):
 
 
 # todo: Need to modify the table.
-class ClimateDataPMSH(BaseModel):
-    P_r = models.FloatField()
+class EtoShData(BaseModel):
     Tmax_r = models.FloatField()
     Tmin_r = models.FloatField()
     RH_r = models.FloatField()
     WS_r = models.FloatField()
-    SH_r = models.FloatField()
+    SH_r = models.FloatField(null=True, blank=True)
+
+
+class LandUseArea(BaseModel):
+    a1 = models.FloatField()
+    a2 = models.FloatField()
+    a3 = models.FloatField()
+    a4 = models.FloatField()
+    a5 = models.FloatField()
+    a6 = models.FloatField()
+    a7 = models.FloatField()
+
+
+class CropCoefficient(BaseModel):
+    kc_a1 = models.FloatField()
+    kc_a2 = models.FloatField()
+    kc_a3 = models.FloatField()
+    kc_a4 = models.FloatField()
+
+
+class CurveNumber(BaseModel):
+    cn1 = models.FloatField()
+    cn2 = models.FloatField()
+    cn3 = models.FloatField()
+    cn4 = models.FloatField()
+
+
+class RechargeRate(BaseModel):
+    re_previous = models.FloatField()
+    re_water_body = models.FloatField()
 
 
 class WBMethodData(BaseModel):
@@ -69,8 +95,8 @@ class WBMethodData(BaseModel):
     eto_method = models.SmallIntegerField(choices=constants.ETO_METHOD_CHOICES, null=True)
     latitude = models.FloatField(null=True)
     elevation = models.FloatField(null=True)
-    climate_data_full = models.ManyToManyField(ClimateDataPMFull, related_name='wb_climatic_data_full')
-    climate_data_pm_sh = models.ManyToManyField(ClimateDataPMSH, related_name='wb_climatic_data_pm_sh')
+    climate_data_full = models.ManyToManyField(EtoRsData, related_name='wb_climatic_data_full')
+    climate_data_pm_sh = models.ManyToManyField(EtoShData, related_name='wb_climatic_data_pm_sh')
     temperature = models.ManyToManyField('estimation.Temperature', related_name='wb_temperature')
     c_values = models.JSONField(blank=True, null=True)
     rs_value = models.JSONField(blank=True, null=True)
