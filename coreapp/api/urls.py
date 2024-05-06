@@ -16,6 +16,6 @@ urlpatterns = [
     # path('change/password/', views.PasswordChangeAPI.as_view(), name='change-password'),
     # path('forget/password/', views.ForgetPasswordAPI.as_view(), name='forget-password'),
     # path('forget/password/confirm/', views.ForgetPasswordConfirmAPI.as_view(), name='forget-password-confirm'),
-    # path('documents/upload/', views.UploadDocumentsAPI.as_view(), name='forget-password-confirm'),
+    path('documents/upload/', views.UploadDocumentsAPI.as_view(), name='forget-password-confirm'),
 ]
 urlpatterns += router.urls

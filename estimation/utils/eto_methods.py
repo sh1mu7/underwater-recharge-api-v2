@@ -8,7 +8,7 @@ def eto_method_validation(data):
     land_use_area = data.get('land_use_area')
     kc_value = data.get('kc_value')
     cn_value = data.get('cn_value')
-    if len(land_use_area) != 36:
+    if land_use_area is not None and len(land_use_area) != 36:
         raise serializers.ValidationError({"error": "The length of land_use_area must be 36"})
     elif kc_value is not None and len(kc_value) != 36:
         raise ValueError("Length of kc_value is not equal to 36.")
@@ -58,7 +58,7 @@ def fao_combined_pm_method(latitude, elevation, eto_rs_data):
 
     # Initialize variables
     SumET0 = 0
-
+    daily_eto = []
     for r in range(36):
         Tmax_r = eto_rs_data[r]['Tmax_r']
         Tmin_r = eto_rs_data[r]['Tmin_r']
@@ -101,10 +101,9 @@ def fao_combined_pm_method(latitude, elevation, eto_rs_data):
 
         # Calculation of ET0 for the current period
         ET0_r = (R_r + A_r) / D_r
-
         # Accumulate ET0 for SumET0
         SumET0 += ET0_r * 10  # Considering 10-day periods
-
+        print(ET0_r)
     # Calculation of Yearly ET0
     YET0 = SumET0 + (ET0_r * 5)  # Multiply by 5 as there are 36 periods
 
@@ -114,7 +113,6 @@ def fao_combined_pm_method(latitude, elevation, eto_rs_data):
 def pm_method_sh(latitude, elevation, eto_sh_data):
     Lambda = 2.4536
     SumET0 = 0
-    print(f'length of climatic_data: {len(eto_sh_data)}')
 
     for r in range(1, len(eto_sh_data)):
         Tmax_r = eto_sh_data[r]['Tmax_r']
@@ -286,27 +284,25 @@ def fao_blaney_criddle_method(latitude, c_values, t_mean_value):
     return YET0
 
 
-def makkink_method(latitude, elevation, solar_radiation, temperature):
+def makkink_method(latitude, elevation, solar_radiation, temperature,p_value):
     # Constants
     Lambda = 2.4536
     Lrad = math.radians(latitude)
-
-    # Calculate atmospheric pressure
-    Z = elevation
-    P = 101.3 * ((293 - 0.0065 * Z) / 293) ** 5.26
-
-    # Calculate Gamma
-    Gama = 0.00163 * P / Lambda
 
     # Initialize variables
     ET0_sum = 0
     delta_sum = 0
     Tmean_sum = 0
 
+    # Calculate Gamma for each P value
+    Gama_values = [0.00163 * P / Lambda for P in p_value]
+
     # Calculate delta and Tmean for each time step and simultaneously calculate ET0
     for i in range(len(solar_radiation)):
         Rs = solar_radiation[i]
         temp_data = temperature[i % len(temperature)]  # Use modulo to cycle through temperature data
+        P = p_value[i % len(p_value)]  # Use modulo to cycle through p_value data
+        Gama = Gama_values[i % len(Gama_values)]  # Use modulo to cycle through Gama values
 
         # Extract temperature values
         t_max = temp_data['t_max']
@@ -325,11 +321,14 @@ def makkink_method(latitude, elevation, solar_radiation, temperature):
         ET0 = ((0.61 * Rs * delta) / ((delta + Gama) * Lambda)) - 0.12
         ET0_sum += ET0 * 10  # ET0 for each time step is multiplied by 10
 
+        print('--'*20)
+        print(f'daily eto{i}: {ET0}')
+        print('--'*20)
+        print(f'eto su')
     # Calculate yearly ET0
     YET0 = ET0_sum + ((ET0 * 5) if ET0 else 0)  # Multiply the last ET0 value by 5
 
     return YET0
-
 
 def hargreaves_method(latitude, t_mean_value):
     """

@@ -48,7 +48,7 @@ def calculate_eto_method(eto_method, latitude, elevation, eto_rs_data, eto_sh_da
             YETO = eto_methods.hargreaves_method(latitude, t_mean_value)
         elif eto_method == constants.ETO_METHOD_CHOICES.MAKKINK_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.makkink_method(latitude, elevation, solar_radiation, temperature)
+            YETO = eto_methods.makkink_method(latitude, elevation, solar_radiation, temperature,p_value)
             print(f'the data for {eto_method} is = {YETO}')
         elif eto_method == constants.ETO_METHOD_CHOICES.HANSEN_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
@@ -102,7 +102,6 @@ def calculate_volumes(land_use_area, kc_values, cn_values, p_values, t_mean_valu
                 cn = cn_value[f'cn{k}']
                 etrk = yeto * kc_a
                 v_sum_etp += (etrk * 10) * (a_k * total_area * 10)
-                print(f'etrk :{etrk}')
                 if etrk <= pr:
                     etark = pr
                 else:
@@ -138,7 +137,6 @@ def calculate_volumes(land_use_area, kc_values, cn_values, p_values, t_mean_valu
             sum_vre += v_re_jk
 
     v_ren = sum_vre
-    print(v_ren)
     return v_ren
 
 

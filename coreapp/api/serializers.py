@@ -1,7 +1,10 @@
+import logging
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import gettext_lazy as _
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.response import Response
 
 from coreapp import roles
 from coreapp.models import Document, User
@@ -150,9 +153,11 @@ class DocumentSerializer(serializers.ModelSerializer):
 
 
 class UserListSerializer(serializers.ModelSerializer):
+    image_url = serializers.CharField(source='get_image_url', read_only=True)
+
     class Meta:
         model = User
-        fields = ('id', 'first_name', 'last_name', 'email', 'mobile', 'role')
+        fields = ('id', 'first_name', 'dob', 'last_name','gender', 'email', 'mobile', 'role', 'image_url')
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -202,12 +207,16 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id', 'first_name', 'last_name', 'dob', 'mobile', 'email', 'password', 'confirm_password', 'gender', 'role'
+            'id', 'first_name', 'last_name', 'dob', 'mobile', 'email', 'password', 'confirm_password', 'gender', 'role',
+            'image'
         )
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
+        confirm_password = validated_data.pop('confirm_password', None)
         role = validated_data.get('role', None)
+
+        # Update user role based on provided role
         if role == roles.UserRoles.USER:
             instance.role = roles.UserRoles.USER
             instance.is_verified = True
@@ -222,7 +231,16 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             instance.is_approved = True
             instance.is_staff = True
             instance.is_active = True
-        if password:
+
+        # Set password if provided and matches confirm_password
+        if password and confirm_password and password == confirm_password:
             instance.set_password(password)
+        elif password or confirm_password:
+            raise serializers.ValidationError("Passwords do not match")
+
+        # Update other fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
         instance.save()
         return instance

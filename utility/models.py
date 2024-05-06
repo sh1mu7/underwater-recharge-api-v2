@@ -4,9 +4,6 @@ from django.utils.functional import cached_property
 from coreapp.base import BaseModel
 
 
-# Create your models here.
-
-
 class GlobalSettings(BaseModel):
     company_slogan = models.CharField(max_length=255, null=True, blank=True)
     site_name = models.CharField(max_length=100)

@@ -20,7 +20,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'coreapp.apps.CoreappConfig',
     'estimation.apps.EstimationConfig',
-    'utility.apps.UtilityConfig'
+    'utility.apps.UtilityConfig',
+    'drf_spectacular_sidecar',  # required for Django collectstatic discovery
 ]
 
 MIDDLEWARE = [
@@ -85,6 +86,7 @@ SPECTACULAR_SETTINGS = {
         'name': 'cognix.tech',
         'email': 'info@cognix.tech'
     },
+    "SWAGGER_UI_DIST": "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest"
     # OTHER SETTINGS
 }
 # Password validation

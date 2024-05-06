@@ -1,6 +1,6 @@
 from coreapp.base import BaseModel
 from django.db import models
-
+from coreapp.models import User
 from estimation import constants
 
 
@@ -29,7 +29,7 @@ class QData(BaseModel):
 
 
 class SPYieldData(BaseModel):
-    wtf = models.ForeignKey(WTFMethod, on_delete=models.CASCADE, related_name='wtf_spy_yield_data')
+    wtf = models.ForeignKey(WTFMethod, on_delete=models.CASCADE, related_name='sp_yield_data')
     layer_height = models.FloatField()
     sp_yield_percentage = models.FloatField()
 
@@ -90,13 +90,45 @@ class RechargeRate(BaseModel):
     re_water_body = models.FloatField()
 
 
-class WBMethodData(BaseModel):
-    user = models.ForeignKey('coreapp.User', on_delete=models.CASCADE, related_name='wb_method_data')
-    eto_method = models.SmallIntegerField(choices=constants.ETO_METHOD_CHOICES, null=True)
-    latitude = models.FloatField(null=True)
-    elevation = models.FloatField(null=True)
-    climate_data_full = models.ManyToManyField(EtoRsData, related_name='wb_climatic_data_full')
-    climate_data_pm_sh = models.ManyToManyField(EtoShData, related_name='wb_climatic_data_pm_sh')
-    temperature = models.ManyToManyField('estimation.Temperature', related_name='wb_temperature')
-    c_values = models.JSONField(blank=True, null=True)
-    rs_value = models.JSONField(blank=True, null=True)
+class SolarRadiation(models.Model):
+    value = models.FloatField()
+
+
+class RHValue(models.Model):
+    value = models.FloatField()
+
+
+class CValue(models.Model):
+    value = models.FloatField()
+
+
+class PValue(models.Model):
+    value = models.FloatField()
+
+
+class TMeanValue(models.Model):
+    value = models.FloatField()
+
+
+class WBMethodData(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    catchment_area = models.FloatField(blank=True, null=True)
+    rlc = models.CharField(max_length=100, choices=constants.ClassificationChoices.choices, blank=True, null=True)
+    rp = models.FloatField(blank=True, null=True)
+    classification = models.CharField(max_length=100, choices=constants.ClassificationChoices.choices, blank=True,
+                                      null=True)
+    eto_method = models.CharField(max_length=100, choices=constants.ETO_METHOD_CHOICES)
+    latitude = models.FloatField(blank=True, null=True)
+    elevation = models.FloatField(blank=True, null=True)
+    temperature = models.ManyToManyField('Temperature', blank=True, related_name='wb_temperature')
+    kc_value = models.ManyToManyField('CropCoefficient', blank=True, related_name='wb_kc_value')
+    cn_value = models.ManyToManyField('CurveNumber', blank=True, related_name='wb_cn_value')
+    eto_rs_data = models.ManyToManyField('EtoRsData', blank=True, related_name='wb_eto_rs_data')
+    eto_sh_data = models.ManyToManyField('EtoShData', blank=True, related_name='wb_eto_sh_data')
+    land_use_area = models.ManyToManyField('LandUseArea', blank=True, related_name='wb_land_use_area')
+    recharge_rate = models.ManyToManyField('RechargeRate', blank=True, related_name='wb_recharge_rate')
+    c_value = models.ManyToManyField(CValue, blank=True, related_name='wb_c_value')
+    p_value = models.ManyToManyField(PValue, blank=True, related_name='wb_p_value')
+    rh_value = models.ManyToManyField(RHValue, blank=True, related_name='wb_rh_value')
+    solar_radiation = models.ManyToManyField(SolarRadiation, blank=True, related_name='wb_solar_radiation')
+    t_mean_value = models.ManyToManyField(TMeanValue, blank=True, related_name='wb_t_mean_value')

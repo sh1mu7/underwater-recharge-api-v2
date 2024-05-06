@@ -258,6 +258,7 @@ class UserAPI(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return serializers.UserCreateSerializer
-        if self.action == 'update' or 'partial_update':
+        elif self.action in ['update', 'partial_update']:
             return serializers.UserUpdateSerializer
-        return self.serializer_class
+        else:
+            return self.serializer_class

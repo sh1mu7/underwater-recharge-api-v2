@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from estimation import constants
 from estimation.models import QData, SPYieldData, WTFMethod, WBMethodData, EtoRsData, Temperature, EtoShData, \
-    LandUseArea, CropCoefficient, CurveNumber, RechargeRate
+    LandUseArea, CropCoefficient, CurveNumber, RechargeRate, CValue, PValue, RHValue, SolarRadiation, TMeanValue
 from estimation.utils.eto_methods import eto_method_validation
 
 
@@ -19,13 +19,13 @@ class SPYieldDataSerializer(serializers.ModelSerializer):
 
 
 class WTFDataSerializer(serializers.ModelSerializer):
-    wtf_spy_yield_data = SPYieldDataSerializer(many=True, read_only=True)
+    sp_yield_data = SPYieldDataSerializer(many=True, read_only=True)
     wtf_q_data = QDataSerializer(many=True, read_only=True)
 
     class Meta:
         model = WTFMethod
-        fields = ['catchment_area', 'wt_max', 'wt_min', 'num_layers',
-                  'is_precipitation_given', 'precipitation', 'wtf_q_data', 'wtf_spy_yield_data']
+        fields = ['id', 'catchment_area', 'wt_max', 'wt_min', 'num_layers',
+                  'is_precipitation_given', 'precipitation', 'wtf_q_data', 'sp_yield_data']
 
 
 class WTFMethodSerializer(serializers.ModelSerializer):
@@ -148,6 +148,7 @@ class WBMethodSerializer(serializers.Serializer):
     def validate(self, attrs):
         eto_method_validation(attrs)
         return attrs
+
     # def validate(self, data):
     #     """
     #     Validate method for WBMethodSerializer.
@@ -337,3 +338,67 @@ class WBMethodSerializer(serializers.Serializer):
     #         pass
     #         # raise serializers.ValidationError({'eto_method': 'Invalid eto method.'})
     #     return data
+
+
+class CValueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CValue
+        fields = '__all__'
+
+
+class PValueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PValue
+        fields = '__all__'
+
+
+class RHValueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RHValue
+        fields = '__all__'
+
+
+class SolarRadiationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SolarRadiation
+        fields = '__all__'
+
+
+class TMeanValueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TMeanValue
+        fields = '__all__'
+
+
+class WBMethodDataSerializer(serializers.ModelSerializer):
+    temperature = TemperatureSerializer(many=True)
+    kc_value = CropCoefficientSerializer(many=True)
+    cn_value = CurveNumberSerializer(many=True)
+    eto_rs_data = EtoRsDataSerializer(many=True)
+    eto_sh_data = EtoShDataSerializer(many=True)
+    land_use_area = LandUseAreaSerializer(many=True)
+    recharge_rate = RechargeRateSerializer(many=True)
+    c_value = CValueSerializer(many=True)
+    p_value = PValueSerializer(many=True)
+    rh_value = RHValueSerializer(many=True)
+    solar_radiation = SolarRadiationSerializer(many=True)
+    t_mean_value = TMeanValueSerializer(many=True)
+
+    class Meta:
+        model = WBMethodData
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        c_values = [item['value'] for item in representation.pop('c_value', [])]
+        p_values = [item['value'] for item in representation.pop('p_value', [])]
+        rh_values = [item['value'] for item in representation.pop('rh_value', [])]
+        solar_radiation_values = [item['value'] for item in representation.pop('solar_radiation', [])]
+        t_mean_values = [item['value'] for item in representation.pop('t_mean_value', [])]
+        representation['c_value'] = c_values
+        representation['p_value'] = p_values
+        representation['rh_value'] = rh_values
+        representation['solar_radiation'] = solar_radiation_values
+        representation['t_mean_value'] = t_mean_values
+
+        return representation
