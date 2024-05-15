@@ -132,3 +132,11 @@ class WBMethodData(models.Model):
     rh_value = models.ManyToManyField(RHValue, blank=True, related_name='wb_rh_value')
     solar_radiation = models.ManyToManyField(SolarRadiation, blank=True, related_name='wb_solar_radiation')
     t_mean_value = models.ManyToManyField(TMeanValue, blank=True, related_name='wb_t_mean_value')
+    yearly_rainfall = models.FloatField(null=True, blank=True)
+    yearly_recharge = models.FloatField(null=True, blank=True)
+    yearly_runoff = models.FloatField(null=True, blank=True)
+    yearly_recharge_percentage_precipitation = models.FloatField(null=True, blank=True)
+    yearly_runoff_percentage_rainfall = models.FloatField(null=True,blank=True)
+    aridity_index = models.FloatField(null=True, blank=True)
+    yeto = models.FloatField(null=True, blank=True)
+

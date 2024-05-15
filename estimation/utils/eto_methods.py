@@ -101,9 +101,12 @@ def fao_combined_pm_method(latitude, elevation, eto_rs_data):
 
         # Calculation of ET0 for the current period
         ET0_r = (R_r + A_r) / D_r
+
+        print(f'daily eto__{r}: {ET0_r:.2f} m')
+
         # Accumulate ET0 for SumET0
         SumET0 += ET0_r * 10  # Considering 10-day periods
-        print(ET0_r)
+
     # Calculation of Yearly ET0
     YET0 = SumET0 + (ET0_r * 5)  # Multiply by 5 as there are 36 periods
 
@@ -114,7 +117,7 @@ def pm_method_sh(latitude, elevation, eto_sh_data):
     Lambda = 2.4536
     SumET0 = 0
 
-    for r in range(1, len(eto_sh_data)):
+    for r in range(0, len(eto_sh_data)):
         Tmax_r = eto_sh_data[r]['Tmax_r']
         Tmin_r = eto_sh_data[r]['Tmin_r']
         RH_r = eto_sh_data[r]['RH_r']
@@ -157,6 +160,8 @@ def pm_method_sh(latitude, elevation, eto_sh_data):
         # Calculation of ET0 for the current period
         ET0_r = (R_r + A_r) / D_r
 
+        print(f'Eto___{r} {ET0_r}')
+
         # Accumulate ET0 for SumET0
         SumET0 += ET0_r * 10  # Considering 10-day periods
 
@@ -173,7 +178,7 @@ def pm_method_no_rs_sh(latitude, elevation, eto_sh_data):
     P = 101.3 * ((293 - 0.0065 * Z) / 293) ** 5.26
     Gama = 0.00163 * P / Lambda
 
-    for t in range(1, len(eto_sh_data)):
+    for t in range(0, len(eto_sh_data)):
         Tmax_r = eto_sh_data[t]['Tmax_r']
         Tmin_r = eto_sh_data[t]['Tmin_r']
         RH_r = eto_sh_data[t]['RH_r']
@@ -194,7 +199,6 @@ def pm_method_no_rs_sh(latitude, elevation, eto_sh_data):
         ea_r = (RH_r / 100) * es_r
         Delta_r = 4098 * ea_r / ((Tmax_r + Tmin_r) / 2 + 237.3) ** 2
 
-        print(f"Delta_r: {Delta_r}, type: {type(Delta_r)}")
 
         # Calculation of Rns, Rnl, Rn
         Rns_r = 0.77 * Rs_t
@@ -204,22 +208,19 @@ def pm_method_no_rs_sh(latitude, elevation, eto_sh_data):
         Rn_r = Rns_r - Rnl_r
         R_r = 0.408 * Delta_r * (Rn_r - 0)
 
-        print(f"R_r: {R_r}, type: {type(R_r)}")
 
         # Calculation of A
         A_r = 900 * WS_r * (es_r - ea_r) / ((Tmax_r + Tmin_r) / 2 + 273)
 
-        print(f"A_r: {A_r}, type: {type(A_r)}")
 
         # Calculation of D
         D_r = Delta_r + Gama * (1 + 0.34 * WS_r)
 
-        print(f"D_r: {D_r}, type: {type(D_r)}")
 
         # Calculation of ET0 for the current period
         ET0_r = (R_r + A_r) / D_r
 
-        print(f"ET0_r: {ET0_r}, type: {type(ET0_r)}")
+        print(f'daily eto_{t}: {ET0_r:.2f} m')
 
         # Accumulate ET0 for SumET0
         SumET0 += ET0_r * 10  # Considering 10-day periods
@@ -227,7 +228,6 @@ def pm_method_no_rs_sh(latitude, elevation, eto_sh_data):
     # Calculation of Yearly ET0
     YET0 = SumET0 + (ET0_r * 5)  # Multiply by 5 as there are 36 periods
 
-    print(f"\nYearly ET0: {YET0}")
     return YET0
 
 
@@ -298,6 +298,8 @@ def makkink_method(latitude, elevation, solar_radiation, temperature,p_value):
     Gama_values = [0.00163 * P / Lambda for P in p_value]
 
     # Calculate delta and Tmean for each time step and simultaneously calculate ET0
+    print('Table 3-  Makkin.xlsx')
+    print('-'*30)
     for i in range(len(solar_radiation)):
         Rs = solar_radiation[i]
         temp_data = temperature[i % len(temperature)]  # Use modulo to cycle through temperature data
@@ -319,12 +321,12 @@ def makkink_method(latitude, elevation, solar_radiation, temperature,p_value):
 
         # Calculate ET0 for the current time step
         ET0 = ((0.61 * Rs * delta) / ((delta + Gama) * Lambda)) - 0.12
+
+        print(f'ETO___{i}: {ET0:.2f} m')
         ET0_sum += ET0 * 10  # ET0 for each time step is multiplied by 10
 
-        print('--'*20)
-        print(f'daily eto{i}: {ET0}')
-        print('--'*20)
-        print(f'eto su')
+    print('-'*30)
+
     # Calculate yearly ET0
     YET0 = ET0_sum + ((ET0 * 5) if ET0 else 0)  # Multiply the last ET0 value by 5
 
@@ -356,7 +358,8 @@ def hargreaves_method(latitude, t_mean_value):
     # Constants
     phi_rad = phi
     lambda_value = 2.4536
-
+    print(f'Table 4- HG .xlsx')
+    print('-'*30)
     for t in range(36):
         # Extract temperature data for the current day
         tmean = t_mean_value[t]
@@ -374,8 +377,11 @@ def hargreaves_method(latitude, t_mean_value):
         # Calculate ET0
         et0 = (0.0023 * ra / lambda_value) * (tmean + 17.8) * math.sqrt(0.75 * (tmean - 18))
 
+        print(f'ET0__{t}: {et0:.2f} m')
+
         # Add ET0 to sumET0
         sum_et0 += et0
+    print('-'*30)
 
     # Calculate Yearly ET0
     yet0 = sum_et0
@@ -414,7 +420,7 @@ def hansen_method(latitude, elevation, solar_radiation, temperature):
 
     # Calculate Gama
     gama = 0.00163 * p / lambda_value
-
+    print(f'Table 5- Hansen .xlsx')
     for k in range(36):
         # Calculate Tmean
         t_max = temperature[k]['t_max']
@@ -427,6 +433,8 @@ def hansen_method(latitude, elevation, solar_radiation, temperature):
 
         # Calculate ET0
         et0 = (0.7 * solar_radiation[k] * delta) / ((delta + gama) * lambda_value)
+
+        print(f'et0___{k}: {et0:.2f} m')
 
         # Add ET0 to sumET0
         sum_et0 += et0 * 10
@@ -450,13 +458,13 @@ def turc_method(solar_radiation, rh_value, temperature):
     - yet0 (float): Yearly ET0 value.
     """
 
-    print(f'Temperature: {temperature}')
     if len(temperature) != 36 or len(solar_radiation) != 36 or len(rh_value) != 36:
         raise ValueError("Data should be provided for all 36 days.")
 
     # Initialize sumET0
     sum_et0 = 0
-
+    print('Table 6- Turk.xlsx')
+    print('-'*30)
     for t in range(36):
         tmean = (temperature[t]["t_max"] + temperature[t]["t_min"]) / 2
         rs = solar_radiation[t]
@@ -468,9 +476,12 @@ def turc_method(solar_radiation, rh_value, temperature):
             aT = 1
 
         et0 = (aT * 0.013 * (tmean / (tmean + 15))) * (23.8856 * rs + 50)
+        print(f'ET0__{t}: {et0:.2f} m')
         sum_et0 += et0 * 10
 
     # Calculate Yearly ET0
+    print('-'*30)
+
     yet0 = sum_et0 + (et0 * 5)
     return yet0
 
@@ -500,7 +511,8 @@ def priestley_taylor_method(latitude, elevation, solar_radiation, temperature):
     gama = 0.00163 * p / lambda_value
 
     sum_et0 = 0
-
+    print(f'Table 7- P-T.xlsx')
+    print('-'*30)
     for k in range(36):
         # Calculate Tmean
         tmax = temperature[k]["t_max"]
@@ -530,11 +542,13 @@ def priestley_taylor_method(latitude, elevation, solar_radiation, temperature):
 
         # Calculate ET0
         et0 = 1.26 * (delta / (delta + gama)) * ((rn - 0) / lambda_value)
-
+        print(f'ET0__{k}: {et0:.2f} m')
         # Add ET0 to sumET0
         sum_et0 += et0 * 10
 
     # Calculate Yearly ET0
+    print('-'*30)
+
     yet0 = sum_et0 + (et0 * 5)
     return yet0
 
@@ -558,20 +572,21 @@ def jensen_haise_method(c_value, solar_radiation, temperature):
     lambda_value = 2.4536
 
     sum_et0 = 0
-
+    print('Table 8  -Jensen-Haise.xlsx')
+    print('-'*30)
     for k in range(36):
         # Calculate Tmean
         tmean = (temperature[k]["t_max"] + temperature[k]["t_min"]) / 2
 
         # Calculate ET0
         et0 = c_value[k] * (solar_radiation[k] * (0.025 * tmean + 0.08) / lambda_value)
-
+        print(f'ET0__{k}: {et0:.2f} m')
         # Add ET0 to sumET0
         sum_et0 += et0 * 10
 
     # Calculate Yearly ET0
     yet0 = sum_et0 + (et0 * 5)
-
+    print('-'*30)
     return yet0
 
 
@@ -591,16 +606,18 @@ def abtew_method(c_value, solar_radiation):
     lambda_value = 2.4536
 
     sum_et0 = 0
-
+    print('Table 9- Abtew .xlsx' )
+    print('-'*30)
     for j in range(36):
         # Calculate ET0
         et0 = c_value[j] * (ki * solar_radiation[j] / lambda_value)
-
+        print(f'ET0__{j}: {et0:.2f} m')
         # Add ET0 to sumET0
         sum_et0 += et0 * 10
 
     # Calculate Yearly ET0
     yet0 = sum_et0 + (et0 * 5)
+    print('-'*30)
 
     return yet0
 
@@ -623,16 +640,21 @@ def de_bruin_method(solar_radiation, t_mean_value, p_value):
         Delta_values.append(Delta)
 
     # Calculate ET0 for each Rs, Tmean, and P value
+    print(f'Table 10- DeBruin.xlsx')
+    print('-'*30)
+    count=0
     for Rs_val, T_val, Delta_val, gamma_val in zip(solar_radiation, t_mean_value, Delta_values, gamma_values):
         ET0 = (C * Rs_val / Lambda) * (Delta_val / (Delta_val + gamma_val))
         ET0_sum += ET0
+        count=count+1
+        print(f'ET0__{count}: {ET0:.2f} m')
 
     # Multiply by 10 to get daily value
     ET0_sum *= 10
 
     # Add the last value of ET0 for 5 days
     ET0_sum += ET0 * 5
-
+    print('-'*30)
     return ET0_sum
 
 #
@@ -655,4 +677,3 @@ def de_bruin_method(solar_radiation, t_mean_value, p_value):
 #             131.7, 131.7, 131.7, 51.0, 51.0, 51.0, 0, 0, 0, 0, 0, 0]
 #
 # ET0_result = calculate_ET0(Rs_data, Tmean_data, latitude, elevation, P_values)
-# print("Estimated ET0:", ET0_result, "mm")

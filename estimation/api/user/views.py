@@ -162,7 +162,17 @@ class WBMethodAPIView(APIView):
                                      key in ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7']}
                     land_use_area_instance = LandUseArea.objects.create(**filtered_data)
                     wb_method_data.land_use_area.add(land_use_area_instance)
+            wb_method_data.yearly_rainfall = round(recharge_data['Yearly Rainfall (mm)'], 1)
+            wb_method_data.yearly_recharge = round(recharge_data['Yearly Recharge (mm)'], 1)
+            wb_method_data.yearly_runoff = round(recharge_data['Yearly Runoff (mm)'], 1)
+            wb_method_data.yearly_recharge_percentage_precipitation = round(
+                recharge_data['Yearly Recharge as a percentage of Precipitation'], 1)
+            wb_method_data.yearly_runoff_percentage_rainfall = round(
+                recharge_data['Yearly Runoff as a percentage of Rainfall'], 1)
+            wb_method_data.aridity_index = round(recharge_data['Aridity Index (AI)'], 1)
+            wb_method_data.yeto = round(recharge_data['YETO'], 1)
 
+            wb_method_data.save()
             return Response(recharge_data, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
