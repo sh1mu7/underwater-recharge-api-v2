@@ -42,13 +42,13 @@ def calculate_eto_method(eto_method, latitude, elevation, eto_rs_data, eto_sh_da
             YETO = eto_methods.pm_method_no_rs_sh(latitude, elevation, eto_sh_data)
         elif eto_method == constants.ETO_METHOD_CHOICES.FAO_BLANEY_CRIDDLE_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.fao_blaney_criddle_method(latitude, c_value, t_mean_value)
+            YETO = eto_methods.fao_blaney_criddle_method(latitude, c_value, t_mean_value, p_value)
         elif eto_method == constants.ETO_METHOD_CHOICES.HARGREAVES_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
             YETO = eto_methods.hargreaves_method(latitude, t_mean_value)
         elif eto_method == constants.ETO_METHOD_CHOICES.MAKKINK_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.makkink_method(latitude, elevation, solar_radiation, temperature,p_value)
+            YETO = eto_methods.makkink_method(latitude, elevation, solar_radiation, temperature, p_value)
         elif eto_method == constants.ETO_METHOD_CHOICES.HANSEN_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
             YETO = eto_methods.hansen_method(latitude, elevation, solar_radiation, temperature)
