@@ -284,7 +284,6 @@ def fao_blaney_criddle_method(latitude, c_values, t_mean_value, p_value):
         df.loc[i] = [i + 1, J_t, Lrad, del_t, dr_t, ws_t_round, N_t, n_360, daily_eto]
 
     # Calculate yearly ET0 (YET0)
-
     SumET0 = sum(ET0_values)
     YET0 = SumET0
     df.to_excel('fao_blaney_criddle_output.xlsx', index=False)
