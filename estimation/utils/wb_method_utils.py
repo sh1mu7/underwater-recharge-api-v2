@@ -33,22 +33,22 @@ def calculate_eto_method(eto_method, latitude, elevation, eto_rs_data, eto_sh_da
     try:
         if eto_method == constants.ETO_METHOD_CHOICES.FAO_COMBINED_PM_METHOD:
             climate_data_instances = [EtoRsData.objects.create(**data) for data in eto_rs_data]
-            YETO = eto_methods.fao_combined_pm_method(latitude, elevation, eto_rs_data)
+            YETO = eto_methods.fao_combined_pm_method(latitude, elevation, eto_rs_data, temperature)
         elif eto_method == constants.ETO_METHOD_CHOICES.PM_SH:
             climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.pm_method_sh(latitude, elevation, eto_sh_data)
+            YETO = eto_methods.pm_method_sh(latitude, elevation, eto_sh_data, temperature)
         elif eto_method == constants.ETO_METHOD_CHOICES.PM_NO_SH_RS:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.pm_method_no_rs_sh(latitude, elevation, eto_sh_data)
+            YETO = eto_methods.pm_method_no_rs_sh(latitude, elevation, eto_sh_data, temperature)
         elif eto_method == constants.ETO_METHOD_CHOICES.FAO_BLANEY_CRIDDLE_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.fao_blaney_criddle_method(latitude, c_value, t_mean_value, p_value)
+            YETO = eto_methods.fao_blaney_criddle_method(latitude, c_value, temperature, p_value)
         elif eto_method == constants.ETO_METHOD_CHOICES.HARGREAVES_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.hargreaves_method(latitude, t_mean_value)
+            YETO = eto_methods.hargreaves_method(latitude, temperature)
         elif eto_method == constants.ETO_METHOD_CHOICES.MAKKINK_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.makkink_method(latitude, elevation, solar_radiation, temperature, p_value)
+            YETO = eto_methods.makkink_method(latitude, elevation, solar_radiation, temperature)
         elif eto_method == constants.ETO_METHOD_CHOICES.HANSEN_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
             YETO = eto_methods.hansen_method(latitude, elevation, solar_radiation, temperature)
@@ -66,7 +66,7 @@ def calculate_eto_method(eto_method, latitude, elevation, eto_rs_data, eto_sh_da
             YETO = eto_methods.abtew_method(c_value, solar_radiation)
         elif eto_method == constants.ETO_METHOD_CHOICES.DE_BRUIN_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.de_bruin_method(solar_radiation, t_mean_value, p_value)
+            YETO = eto_methods.de_bruin_method(solar_radiation, temperature, latitude, elevation)
         else:
             return Response({'error': f"Method {eto_method} is not implemented yet"},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -75,7 +75,7 @@ def calculate_eto_method(eto_method, latitude, elevation, eto_rs_data, eto_sh_da
     return YETO
 
 
-def calculate_volumes(land_use_area, kc_values, cn_values, p_values, t_mean_values, yeto):
+def calculate_volumes(land_use_area, kc_values, cn_values, p_values, temperature, yeto):
     v_sum_etp = 0
     v_sum_eta = 0
     v_sum_ro = 0
@@ -103,16 +103,17 @@ def calculate_volumes(land_use_area, kc_values, cn_values, p_values, t_mean_valu
                     etark = ajk / bjk
                 v_sum_eta += (etark * 10) * (a_k * total_area * 10)
 
-        for k in range(1, 5):
-            p_j = p_values[i]
-            et_ajk = t_mean_values[i]
-            cn_jk = cn_values[j][f'cn{k}']
-            s_jk = (1000 / cn_jk) - 10
-            ajk = (p_j - et_ajk - 0.2 * s_jk) ** 2
-            bjk = (p_j - et_ajk + 0.8 * s_jk)
-            q_jk = ajk / bjk
-            ro_jk = q_jk
-            v_sum_ro += (ro_jk * 10) * (land_use_area[i][f'a{k}'] * total_area * 10)
+                p_j = p_values[i]
+                tmax = temperature[k]['t_max']
+                tmin = temperature[k]['t_min']
+                et_ajk = (tmax + tmin) / 2
+                cn_jk = cn_values[j][f'cn{k}']
+                s_jk = (1000 / cn_jk) - 10
+                ajk = (p_j - et_ajk - 0.2 * s_jk) ** 2
+                bjk = (p_j - et_ajk + 0.8 * s_jk)
+                q_jk = ajk / bjk
+                ro_jk = q_jk
+                v_sum_ro += (ro_jk * 10) * (land_use_area[i][f'a{k}'] * total_area * 10)
 
     for i in range(len(p_values)):
         for k in range(1, 5):
@@ -132,7 +133,7 @@ def calculate_volumes(land_use_area, kc_values, cn_values, p_values, t_mean_valu
     return v_ren
 
 
-def calculate_recharge(land_use_area, recharge_rate, p_value, v_ren, t_mean_value, yeto):
+def calculate_recharge(land_use_area, recharge_rate, p_value, v_ren, temperature, yeto):
     V_ReN = v_ren
     RP_values = [r["re_previous"] for r in recharge_rate]
     RW_values = [r["re_water_body"] for r in recharge_rate]
@@ -151,7 +152,8 @@ def calculate_recharge(land_use_area, recharge_rate, p_value, v_ren, t_mean_valu
         Ro *= RF
     Ratio_Ra_P = Rad / Sum_P
     Ratio_Ro_P = Ro / Sum_P
-    AI = Sum_P / sum(t_mean_value)
+    tmean = [(data['t_max'] + data['t_min']) / 2 for data in temperature]
+    AI = Sum_P / sum(tmean)
     PRa = 100 * Rad / Sum_P
     PRo = 100 * Ro / Sum_P
     if PRa > 40:

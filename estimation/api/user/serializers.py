@@ -84,7 +84,7 @@ class EtoRsDataSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
         extra_kwargs = {
-            'SR_r': {'required': False},
+            'SR_t': {'required': False},
         }
 
 

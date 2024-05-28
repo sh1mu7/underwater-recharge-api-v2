@@ -45,20 +45,16 @@ class Temperature(BaseModel):
 
 
 class EtoRsData(BaseModel):
-    Tmax_r = models.FloatField()
-    Tmin_r = models.FloatField()
-    RH_r = models.FloatField()
-    WS_r = models.FloatField()
-    SR_r = models.FloatField()
+    RH_t = models.FloatField()
+    WS_t = models.FloatField()
+    SR_t = models.FloatField()
 
 
 # todo: Need to modify the table.
 class EtoShData(BaseModel):
-    Tmax_r = models.FloatField()
-    Tmin_r = models.FloatField()
-    RH_r = models.FloatField()
-    WS_r = models.FloatField()
-    SH_r = models.FloatField(null=True, blank=True)
+    RH_t = models.FloatField()
+    WS_t = models.FloatField()
+    SH_t = models.FloatField(null=True, blank=True)
 
 
 class LandUseArea(BaseModel):

@@ -91,8 +91,8 @@ class WBMethodAPIView(APIView):
             process_land_use_data_with_cn_kc(land_use_area, kc_value, cn_value)
             yeto = calculate_eto_method(eto_method, latitude, elevation, eto_rs_data, eto_sh_data, c_value, p_value,
                                         t_mean_value, solar_radiation, rh_value, temperature)
-            v_ren = calculate_volumes(land_use_area, kc_value, cn_value, p_value, t_mean_value, yeto)
-            recharge_data = calculate_recharge(land_use_area, recharge_rate, p_value, v_ren, t_mean_value, yeto)
+            v_ren = calculate_volumes(land_use_area, kc_value, cn_value, p_value, temperature, yeto)
+            recharge_data = calculate_recharge(land_use_area, recharge_rate, p_value, v_ren, temperature, yeto)
             wb_method_data = WBMethodData.objects.create(
                 user=self.request.user,
                 catchment_area=serializer.validated_data.get('catchment_area'),
