@@ -2,7 +2,8 @@ from rest_framework import serializers
 
 from estimation import constants
 from estimation.models import QData, SPYieldData, WTFMethod, WBMethodData, EtoRsData, Temperature, EtoShData, \
-    LandUseArea, CropCoefficient, CurveNumber, RechargeRate, CValue, PValue, RHValue, SolarRadiation, TMeanValue
+    LandUseArea, CropCoefficient, CurveNumber, RechargeRate, CValue, PValue, RHValue, SolarRadiation, TMeanValue, \
+    EtoData
 from estimation.utils.eto_methods import eto_method_validation
 
 
@@ -370,6 +371,12 @@ class TMeanValueSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class EtoDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EtoData
+        fields = ['value', ]
+
+
 class WBMethodDataSerializer(serializers.ModelSerializer):
     temperature = TemperatureSerializer(many=True)
     kc_value = CropCoefficientSerializer(many=True)
@@ -383,6 +390,7 @@ class WBMethodDataSerializer(serializers.ModelSerializer):
     rh_value = RHValueSerializer(many=True)
     solar_radiation = SolarRadiationSerializer(many=True)
     t_mean_value = TMeanValueSerializer(many=True)
+    eto_list = EtoDataSerializer(many=True)
 
     class Meta:
         model = WBMethodData
@@ -393,6 +401,7 @@ class WBMethodDataSerializer(serializers.ModelSerializer):
         c_values = [item['value'] for item in representation.pop('c_value', [])]
         p_values = [item['value'] for item in representation.pop('p_value', [])]
         rh_values = [item['value'] for item in representation.pop('rh_value', [])]
+        eto_list = [item['value'] for item in representation.pop('eto_list', [])]
         solar_radiation_values = [item['value'] for item in representation.pop('solar_radiation', [])]
         t_mean_values = [item['value'] for item in representation.pop('t_mean_value', [])]
         representation['c_value'] = c_values
@@ -400,5 +409,5 @@ class WBMethodDataSerializer(serializers.ModelSerializer):
         representation['rh_value'] = rh_values
         representation['solar_radiation'] = solar_radiation_values
         representation['t_mean_value'] = t_mean_values
-
+        representation['eto_list'] = eto_list
         return representation

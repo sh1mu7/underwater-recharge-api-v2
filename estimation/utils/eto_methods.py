@@ -55,6 +55,7 @@ def fao_combined_pm_method(latitude, elevation, eto_rs_data, temperature):
     """
     # Constants
     # data = []
+    eto_list = []
     Lambda = 2.4536
     z = elevation
     # Initialize variables
@@ -109,7 +110,8 @@ def fao_combined_pm_method(latitude, elevation, eto_rs_data, temperature):
         ET0_t = (R_t + A_t) / D_t
 
         # Accumulate ET0 for SumET0
-        SumET0 += ET0_t * 10  # Considering 10-day periods
+        SumET0 += ET0_t  # Considering 10-day periods
+        eto_list.append(ET0_t)
         # data.append([
         #     round(RH_t, 2), round(WS_t, 2), round(SR_t, 2), round(Tmax_t, 2), round(Tmin_t, 2), round(Tmean_t, 2),
         #     round(p, 2), round(gamma, 2), round(J_t, 2), round(del_t, 2), round(dr_t, 2), round(ws_t, 2),
@@ -125,9 +127,8 @@ def fao_combined_pm_method(latitude, elevation, eto_rs_data, temperature):
     # df = pd.DataFrame(data, columns=columns)
     # df.to_excel("FAO_Combined_PM_Method_Full_OUTPUT.xlsx", index=False)
     # Calculation of Yearly ET0
-    YET0 = SumET0 + (ET0_t * 5)  # Multiply by 5 as there are 36 periods
-
-    return YET0
+    YET0 = SumET0  # Multiply by 5 as there are 36 periods
+    return YET0, eto_list
 
 
 def pm_method_sh(latitude, elevation, eto_sh_data, temperature):
@@ -136,6 +137,7 @@ def pm_method_sh(latitude, elevation, eto_sh_data, temperature):
     z = elevation
     Lrad = latitude * math.pi / 180
     # data = []
+    eto_list = []
 
     for r in range(0, len(eto_sh_data)):
         Tmax_t = temperature[r]['t_max']
@@ -176,7 +178,8 @@ def pm_method_sh(latitude, elevation, eto_sh_data, temperature):
         D_t = Delta_t + gamma * (1 + 0.34 * WS_t)
         # Calculation of ET0 for the current period
         ET0_t = (R_t + A_t) / D_t
-        SumET0 += ET0_t * 10  # Considering 10-day periods
+        SumET0 += ET0_t  # Considering 10-day periods
+        eto_list.append(ET0_t)
 
         # print(
         #     f'RH_t: {round(RH_t, 2)}, WS_t: {round(WS_t, 2)}, SH_t: {round(SH_t, 2)}, Tmax_t: {round(Tmax_t, 2)}, '
@@ -236,11 +239,12 @@ def pm_method_sh(latitude, elevation, eto_sh_data, temperature):
     # Calculation of Yearly ET0
     # df = pd.DataFrame(data)
     # df.to_excel('pm_method_sh_output.xlsx', index=False)
-    YET0 = SumET0 + (ET0_t * 5)  # Multiply by 5 as there are 36 periods
-    return YET0
+    YET0 = SumET0  # Multiply by 5 as there are 36 periods
+    return YET0, eto_list
 
 
 def pm_method_no_rs_sh(latitude, elevation, eto_sh_data, temperature):
+    eto_list = []
     Lambda = 2.4536
     SumET0 = 0
     Lrad = latitude * math.pi / 180
@@ -294,7 +298,7 @@ def pm_method_no_rs_sh(latitude, elevation, eto_sh_data, temperature):
             f'del_t:{round(del_t, 1)}, ws_t:{round(ws_t, 2)},dr_t:{round(dr_t, 2)},Ra_t:{round(Ra_t, 2)},Rs_t:{round(Rs_t, 2)},Rns_t: {round(Rns_t, 2)},Rnl_t: {round(Rnl_t, 2)},Rn_t: {round(Rn_t, 2)},R_t:{round(R_t, 2)}, D_t: {round(D_t, 3)}, ET0_t:{round(ET0_t, 2)}, J-t: {J_t}')
 
         # Accumulate ET0 for SumET0
-        SumET0 += ET0_t * 10  # Considering 10-day periods
+        SumET0 += ET0_t  # Considering 10-day periods
         data.append({
             'Tmax': round(Tmax_t, 2),
             'Tmin': round(Tmin_t, 2),
@@ -326,12 +330,13 @@ def pm_method_no_rs_sh(latitude, elevation, eto_sh_data, temperature):
             'D (mm/d)': round(D_t, 2),
             'Eto': round(ET0_t, 2)
         })
+        eto_list.append(ET0_t)
 
     # Calculation of Yearly ET0
-    YET0 = SumET0 + (ET0_t * 5)  # Multiply by 5 as there are 36 periods
+    YET0 = SumET0  # Multiply by 5 as there are 36 periods
     df = pd.DataFrame(data)
     # df.to_excel('pm_method_no_rs_sh_output.xlsx', index=False)
-    return YET0
+    return YET0, eto_list
 
 
 def fao_blaney_criddle_method(latitude, c_values, temperature, p_value):
@@ -342,7 +347,7 @@ def fao_blaney_criddle_method(latitude, c_values, temperature, p_value):
     Args:
         latitude (float): Latitude of the location in decimal degrees.
         c_values (list of float): List of C values for each time period.
-        t_mean_value (list of float): List of mean temperature values for each time period.
+        temperature (list of float): List of  temperature values for each time period.
         p_value (list of float): List of p values for each time period.
 
     Returns:
@@ -353,7 +358,7 @@ def fao_blaney_criddle_method(latitude, c_values, temperature, p_value):
 
     # Initialize variables
     sumN = 0
-    ET0_values = []
+    eto_list = []
 
     # Create DataFrame to store intermediate values
 
@@ -380,15 +385,16 @@ def fao_blaney_criddle_method(latitude, c_values, temperature, p_value):
         c_t = c_values[i]
         ET0_t = c_t * p_t * (0.46 * T_mean + 8)
         print(f'ET0_calculation: {round(ET0_t, 2)}')
-        ET0_values.append(ET0_t)
+        eto_list.append(ET0_t)
     # Calculate yearly ET0 (YET0)
-    SumET0 = sum(ET0_values)
+    SumET0 = sum(eto_list)
     YET0 = SumET0
-    return YET0
+    return YET0, eto_list
 
 
 def makkink_method(latitude, elevation, solar_radiation, temperature):
     data = []
+    eto_list = []
     # Constants
     Lambda = 2.4536
     Lrad = latitude * math.pi / 180
@@ -414,12 +420,13 @@ def makkink_method(latitude, elevation, solar_radiation, temperature):
         data.append([
             round(Tmean, 2), round(P, 2), round(gamma, 2), round(ea, 2), round(delta, 2), round(ET0, 2)
         ])
+        eto_list.append(ET0)
     columns = ["Tmean", "P", "Gamma", "ea", "delta", "eto"]
 
     df = pd.DataFrame(data, columns=columns)
     # df.to_excel("makkink_method_output.xlsx", index=False)
-    Yeto = sum_eto
-    return Yeto
+    YET0 = sum_eto
+    return YET0, eto_list
 
 
 def hargreaves_method(latitude, temperature):
@@ -443,7 +450,7 @@ def hargreaves_method(latitude, temperature):
     Lrad = latitude * math.pi / 180
     sum_et0 = 0
     lambda_value = 2.4536
-
+    eto_list = []
     print(f'Table 4- HG .xlsx')
     for t in range(36):
         # Extract temperature data for the current day
@@ -464,9 +471,10 @@ def hargreaves_method(latitude, temperature):
         et0 = (0.0023 * ra / lambda_value) * (tmean + 17.8) * math.sqrt((tmax - tmin))
         sum_et0 += et0
         print(f'Eto: {round(et0, 2)}')
+        eto_list.append(et0)
 
-    yet0 = sum_et0
-    return yet0
+    YET0 = sum_et0
+    return YET0, eto_list
 
 
 def hansen_method(latitude, elevation, solar_radiation, temperature):
@@ -492,7 +500,7 @@ def hansen_method(latitude, elevation, solar_radiation, temperature):
     # Initialize sumET0
     sum_et0 = 0
     data = []
-
+    eto_list = []
     # Constants
     lambda_value = 2.4536
 
@@ -523,12 +531,13 @@ def hansen_method(latitude, elevation, solar_radiation, temperature):
         data.append([
             round(t_mean, 2), round(P, 2), round(gamma, 2), round(ea, 2), round(delta, 2), round(et0, 2)
         ])
+        eto_list.append(et0)
     columns = ["Tmean", "P", "Gamma", "ea", "delta", "eto"]
 
     df = pd.DataFrame(data, columns=columns)
     # df.to_excel("hansen_method_output.xlsx", index=False)
-    Yeto = sum_et0
-    return Yeto
+    YET0 = sum_et0
+    return YET0, eto_list
 
 
 def turc_method(solar_radiation, rh_value, temperature):
@@ -550,6 +559,7 @@ def turc_method(solar_radiation, rh_value, temperature):
 
     # Initialize sumET0
     sum_et0 = 0
+    eto_list = []
     data = []
     for t in range(36):
         Tmax = temperature[t]["t_max"]
@@ -566,11 +576,12 @@ def turc_method(solar_radiation, rh_value, temperature):
         data.append([
             round(Tmax, 1), round(Tmin, 1), round(tmean, 1), round(rs, 1), round(aT, 1), round(et0, 1)
         ])
-    yet0 = sum_et0
+        eto_list.append(et0)
+    YET0 = sum_et0
     columns = ["Tmax", "Tmin", "tmean", "Rs", "aT", "ETO"]
     df = pd.DataFrame(data, columns=columns)
     # df.to_excel("turc_method_output.xlsx", index=False)
-    return yet0
+    return YET0, eto_list
 
 
 def priestley_taylor_method(latitude, elevation, solar_radiation, temperature):
@@ -589,7 +600,7 @@ def priestley_taylor_method(latitude, elevation, solar_radiation, temperature):
     """
     # Convert latitude to radians
     Lrad = latitude * math.pi / 180
-
+    eto_list = []
     # Constants
     lambda_value = 2.4536
 
@@ -630,6 +641,7 @@ def priestley_taylor_method(latitude, elevation, solar_radiation, temperature):
         et0 = 1.26 * (delta / (delta + gama)) * ((rn - 0) / lambda_value)
         # Add ET0 to sumET0
         sum_et0 += et0
+        eto_list.append(et0)
         data.append([
             round(tmax, 2), round(tmin, 2), round(rs, 2), round(tmean, 2),
             round(p, 1), round(gama, 2), round(ea, 2), round(delta, 2),
@@ -638,7 +650,7 @@ def priestley_taylor_method(latitude, elevation, solar_radiation, temperature):
             round(rn, 2), round(et0, 2)
         ])
 
-    yet0 = sum_et0
+    YET0 = sum_et0
     columns = [
         "Tmax", "Tmin", "Rs", "Tmean", "P", "Gamma", "Ea", "Delta",
         "J", "Lrad", "Delta_rad", "Dr", "Ws", "Ra",
@@ -646,7 +658,7 @@ def priestley_taylor_method(latitude, elevation, solar_radiation, temperature):
     ]
     df = pd.DataFrame(data, columns=columns)
     # df.to_excel('priestley_taylor_method_output.xlsx', index=False)
-    return yet0
+    return YET0, eto_list
 
 
 def jensen_haise_method(c_value, solar_radiation, temperature):
@@ -668,7 +680,7 @@ def jensen_haise_method(c_value, solar_radiation, temperature):
     # Constants
     lambda_value = 2.4536
     data = []
-
+    eto_list = []
     sum_et0 = 0
     print('Table 8  -Jensen-Haise.xlsx')
     print('-' * 30)
@@ -682,16 +694,15 @@ def jensen_haise_method(c_value, solar_radiation, temperature):
         sum_et0 += et0
         data.append([round(solar_radiation[i], 2), round(c_value[i], 2), round(et0, 2)])
         print(f'solar_radiation: {solar_radiation[i]}, c_value: {c_value[i]}, et0: {round(et0, 2)}')
-
+        eto_list.append(et0)
     columns = [
         'Rs(MJ/m^2/d)', 'C', 'ETO (mm/d)'
     ]
     df = pd.DataFrame(data=data, columns=columns)
     # df.to_excel('jensen_haise_method_output.xlsx', index=False)
     # Calculate Yearly ET0
-    yet0 = sum_et0
-
-    return yet0
+    YET0 = sum_et0
+    return YET0, eto_list
 
     # Calculate Yearly ET0
 
@@ -713,6 +724,7 @@ def abtew_method(c_value, solar_radiation):
     lambda_value = 2.4536
     sum_et0 = 0
     data = []
+    eto_list = []
     for j in range(36):
         # Calculate ET0
         rs_value = solar_radiation[j]
@@ -721,6 +733,7 @@ def abtew_method(c_value, solar_radiation):
         sum_et0 += et0
         data.append([round(solar_radiation[j], 2), round(c_value[j], 2), round(et0, 2)])
         print(f'solar_radiation: {rs_value}, c_value: {c_value[j]}, et0: {round(et0, 2)}')
+        eto_list.append(et0)
 
     columns = [
         'Rs(MJ/m^2/d)', 'C', 'ETO (mm/d)'
@@ -728,9 +741,9 @@ def abtew_method(c_value, solar_radiation):
     df = pd.DataFrame(data=data, columns=columns)
     # df.to_excel('abtew_method_11_output.xlsx', index=False)
     # Calculate Yearly ET0
-    yet0 = sum_et0
+    YET0 = sum_et0
 
-    return yet0
+    return YET0, eto_list
 
 
 def de_bruin_method(solar_radiation, temperature, latitude, elevation):
@@ -747,8 +760,9 @@ def de_bruin_method(solar_radiation, temperature, latitude, elevation):
     # Calculate gamma
     Gama = 0.00163 * P / Lambda
     # Initialize ET0 sum
-    ET0sum = 0
+    YETO = 0
     data = []
+    eto_list = []
     for i in range(36):
         Tmax = temperature[i]['t_max']
         Tmin = temperature[i]['t_min']
@@ -758,7 +772,8 @@ def de_bruin_method(solar_radiation, temperature, latitude, elevation):
         Rs_val = solar_radiation[i]
         ET0 = (C * Rs_val / Lambda) * (Delta / (Delta + Gama))
         # ET0sum += ET0 * 10
-        ET0sum += ET0
+        YETO += ET0
+        eto_list.append(ET0)
         data.append([round(P, 2), round(Gama, 2), round(ea, 2), round(Delta, 2), round(ET0, 2)])
 
     columns = ['P', 'Gama', 'ETA', 'Delta', 'Eto']
@@ -774,4 +789,4 @@ def de_bruin_method(solar_radiation, temperature, latitude, elevation):
     #     ET0_last = (C * Rs_val_last / Lambda) * (Delta_last / (Delta_last + Gama))
     #     ET0sum += ET0_last * 5
 
-    return ET0sum
+    return YETO, eto_list

@@ -27,52 +27,53 @@ def process_land_use_data_with_cn_kc(land_use_area, kc_value, cn_value):
     return land_use_area
 
 
-def calculate_eto_method(eto_method, latitude, elevation, eto_rs_data, eto_sh_data, c_value, p_value, t_mean_value,
+def calculate_eto_method(eto_method, latitude, elevation, eto_rs_data, eto_sh_data, c_value, p_value,
                          solar_radiation, rh_value, temperature):
     YETO = None
+    eto_list = None
     try:
         if eto_method == constants.ETO_METHOD_CHOICES.FAO_COMBINED_PM_METHOD:
             climate_data_instances = [EtoRsData.objects.create(**data) for data in eto_rs_data]
-            YETO = eto_methods.fao_combined_pm_method(latitude, elevation, eto_rs_data, temperature)
+            YETO, eto_list = eto_methods.fao_combined_pm_method(latitude, elevation, eto_rs_data, temperature)
         elif eto_method == constants.ETO_METHOD_CHOICES.PM_SH:
             climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.pm_method_sh(latitude, elevation, eto_sh_data, temperature)
+            YETO, eto_list = eto_methods.pm_method_sh(latitude, elevation, eto_sh_data, temperature)
         elif eto_method == constants.ETO_METHOD_CHOICES.PM_NO_SH_RS:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.pm_method_no_rs_sh(latitude, elevation, eto_sh_data, temperature)
+            YETO, eto_list = eto_methods.pm_method_no_rs_sh(latitude, elevation, eto_sh_data, temperature)
         elif eto_method == constants.ETO_METHOD_CHOICES.FAO_BLANEY_CRIDDLE_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.fao_blaney_criddle_method(latitude, c_value, temperature, p_value)
+            YETO, eto_list = eto_methods.fao_blaney_criddle_method(latitude, c_value, temperature, p_value)
         elif eto_method == constants.ETO_METHOD_CHOICES.HARGREAVES_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.hargreaves_method(latitude, temperature)
+            YETO, eto_list = eto_methods.hargreaves_method(latitude, temperature)
         elif eto_method == constants.ETO_METHOD_CHOICES.MAKKINK_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.makkink_method(latitude, elevation, solar_radiation, temperature)
+            YETO, eto_list = eto_methods.makkink_method(latitude, elevation, solar_radiation, temperature)
         elif eto_method == constants.ETO_METHOD_CHOICES.HANSEN_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.hansen_method(latitude, elevation, solar_radiation, temperature)
+            YETO, eto_list = eto_methods.hansen_method(latitude, elevation, solar_radiation, temperature)
         elif eto_method == constants.ETO_METHOD_CHOICES.TURC_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.turc_method(solar_radiation, rh_value, temperature)
+            YETO, eto_list = eto_methods.turc_method(solar_radiation, rh_value, temperature)
         elif eto_method == constants.ETO_METHOD_CHOICES.PRIESTLEY_TAYLOR_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.priestley_taylor_method(latitude, elevation, solar_radiation, temperature)
+            YETO, eto_list = eto_methods.priestley_taylor_method(latitude, elevation, solar_radiation, temperature)
         elif eto_method == constants.ETO_METHOD_CHOICES.JENSEN_HAISE_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.jensen_haise_method(c_value, solar_radiation, temperature)
+            YETO, eto_list = eto_methods.jensen_haise_method(c_value, solar_radiation, temperature)
         elif eto_method == constants.ETO_METHOD_CHOICES.ABTEW_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.abtew_method(c_value, solar_radiation)
+            YETO, eto_list = eto_methods.abtew_method(c_value, solar_radiation)
         elif eto_method == constants.ETO_METHOD_CHOICES.DE_BRUIN_METHOD:
             # climate_data_instances = [EtoShData.objects.create(**data) for data in eto_sh_data]
-            YETO = eto_methods.de_bruin_method(solar_radiation, temperature, latitude, elevation)
+            YETO, eto_list = eto_methods.de_bruin_method(solar_radiation, temperature, latitude, elevation)
         else:
             return Response({'error': f"Method {eto_method} is not implemented yet"},
                             status=status.HTTP_400_BAD_REQUEST)
     except ValidationError as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    return YETO
+    return YETO, eto_list
 
 
 def calculate_volumes(land_use_area, kc_values, cn_values, p_values, temperature, yeto):

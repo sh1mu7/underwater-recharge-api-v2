@@ -106,6 +106,11 @@ class TMeanValue(models.Model):
     value = models.FloatField()
 
 
+class EtoData(BaseModel):
+    value = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+
+
+
 class WBMethodData(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     catchment_area = models.FloatField(blank=True, null=True)
@@ -132,7 +137,7 @@ class WBMethodData(models.Model):
     yearly_recharge = models.FloatField(null=True, blank=True)
     yearly_runoff = models.FloatField(null=True, blank=True)
     yearly_recharge_percentage_precipitation = models.FloatField(null=True, blank=True)
-    yearly_runoff_percentage_rainfall = models.FloatField(null=True,blank=True)
+    yearly_runoff_percentage_rainfall = models.FloatField(null=True, blank=True)
     aridity_index = models.FloatField(null=True, blank=True)
     yeto = models.FloatField(null=True, blank=True)
-
+    eto_list = models.ManyToManyField(EtoData, blank=True, related_name='wb_eto_list')

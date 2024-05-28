@@ -1,3 +1,5 @@
+import decimal
+
 from rest_framework import status, viewsets, mixins, response
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser
@@ -9,7 +11,7 @@ from .serializers import WTFMethodSerializer, WBMethodSerializer
 from .. import filters
 from ... import constants
 from ...models import WTFMethod, SPYieldData, QData, WBMethodData, EtoRsData, EtoShData, Temperature, CValue, PValue, \
-    TMeanValue, RHValue, CropCoefficient, RechargeRate, CurveNumber, SolarRadiation, LandUseArea
+    TMeanValue, RHValue, CropCoefficient, RechargeRate, CurveNumber, SolarRadiation, LandUseArea, EtoData
 from ...utils import eto_methods
 from ...utils.calculate_yearly_recharge import calculate_yearly_recharge
 from ...utils.eto_methods import hargreaves_method, eto_method_validation
@@ -89,8 +91,13 @@ class WBMethodAPIView(APIView):
             recharge_rate = serializer.validated_data.get('recharge_rate')
             land_use_area = serializer.validated_data.pop('land_use_area')
             process_land_use_data_with_cn_kc(land_use_area, kc_value, cn_value)
-            yeto = calculate_eto_method(eto_method, latitude, elevation, eto_rs_data, eto_sh_data, c_value, p_value,
-                                        t_mean_value, solar_radiation, rh_value, temperature)
+            yeto, eto_list = calculate_eto_method(eto_method, latitude, elevation, eto_rs_data, eto_sh_data, c_value,
+                                                  p_value, solar_radiation, rh_value, temperature)
+
+            print('------' * 30)
+
+            print(f'Eto_List: {eto_list}')
+            print('------' * 30)
             v_ren = calculate_volumes(land_use_area, kc_value, cn_value, p_value, temperature, yeto)
             recharge_data = calculate_recharge(land_use_area, recharge_rate, p_value, v_ren, temperature, yeto)
             wb_method_data = WBMethodData.objects.create(
@@ -100,6 +107,11 @@ class WBMethodAPIView(APIView):
                 elevation=serializer.validated_data.get('elevation'), rlc=serializer.validated_data.get('rlc'), rp=rp,
                 classification=classification, eto_method=serializer.validated_data.get('eto_method')
             )
+            if eto_list is not None:
+                for eto in eto_list:
+                    rounded_eto = round(decimal.Decimal(eto), 2)
+                    eto_list_instance = EtoData.objects.create(value=rounded_eto)
+                    wb_method_data.eto_list.add(eto_list_instance)
 
             if temperature is not None:
                 for temp in temperature:
@@ -162,6 +174,7 @@ class WBMethodAPIView(APIView):
                                      key in ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7']}
                     land_use_area_instance = LandUseArea.objects.create(**filtered_data)
                     wb_method_data.land_use_area.add(land_use_area_instance)
+            recharge_data['id'] = wb_method_data.id
             wb_method_data.yearly_rainfall = round(recharge_data['Yearly Rainfall (mm)'], 1)
             wb_method_data.yearly_recharge = round(recharge_data['Yearly Recharge (mm)'], 1)
             wb_method_data.yearly_runoff = round(recharge_data['Yearly Runoff (mm)'], 1)
@@ -171,7 +184,7 @@ class WBMethodAPIView(APIView):
                 recharge_data['Yearly Runoff as a percentage of Rainfall'], 1)
             wb_method_data.aridity_index = round(recharge_data['Aridity Index (AI)'], 1)
             wb_method_data.yeto = round(recharge_data['YETO'], 1)
-
+            recharge_data['eto_list'] = [round(eto, 2) for eto in eto_list]
             wb_method_data.save()
             return Response(recharge_data, status=status.HTTP_200_OK)
         else:
