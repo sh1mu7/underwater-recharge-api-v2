@@ -1,152 +1,411 @@
 {
   "eto_method": 2,
+  "catchment_area": 10,
   "latitude": 24.4,
   "elevation": 19,
+  "rf": 0.9,
+  "rf_option": true,
   "recharge_rate": [
     {
-      "re_previous": 0,
-      "re_water_body": 1.1
+      "re_cr": 0,
+      "re_ro": 0,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 0,
-      "re_water_body": 1.1
+      "re_cr": 0,
+      "re_ro": 0,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 0,
-      "re_water_body": 1.1
+      "re_cr": 0,
+      "re_ro": 0,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 0,
-      "re_water_body": 1.1
+      "re_cr": 0,
+      "re_ro": 0,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 0,
-      "re_water_body": 1.1
+      "re_cr": 0,
+      "re_ro": 0,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 0,
-      "re_water_body": 1.1
+      "re_cr": 0,
+      "re_ro": 0,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 0,
-      "re_water_body": 1.1
+      "re_cr": 500,
+      "re_ro": 100,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 0,
-      "re_water_body": 1
+      "re_cr": 500,
+      "re_ro": 100,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 0,
-      "re_water_body": 1
+      "re_cr": 500,
+      "re_ro": 100,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 0,
-      "re_water_body": 1
+      "re_cr": 100,
+      "re_ro": 200,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 3,
-      "re_water_body": 1
+      "re_cr": 100,
+      "re_ro": 200,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 3,
-      "re_water_body": 1
+      "re_cr": 100,
+      "re_ro": 200,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 3,
-      "re_water_body": 1
+      "re_cr": 100,
+      "re_ro": 200,
+      "re_pa": 5000,
+      "re_other": 50
     },
     {
-      "re_previous": 3,
-      "re_water_body": 1
+      "re_cr": 0,
+      "re_ro": 300,
+      "re_pa": 5000,
+      "re_other": 0
     },
     {
-      "re_previous": 3,
-      "re_water_body": 1
+      "re_cr": 0,
+      "re_ro": 300,
+      "re_pa": 5000,
+      "re_other": 0
     },
     {
-      "re_previous": 3,
-      "re_water_body": 1
+      "re_cr": 0,
+      "re_ro": 300,
+      "re_pa": 5000,
+      "re_other": 0
     },
     {
-      "re_previous": 3,
-      "re_water_body": 1
+      "re_cr": 0,
+      "re_ro": 300,
+      "re_pa": 5000,
+      "re_other": 0
     },
     {
-      "re_previous": 3,
-      "re_water_body": 1
+      "re_cr": 0,
+      "re_ro": 300,
+      "re_pa": 5000,
+      "re_other": 0
     },
     {
-      "re_previous": 3,
-      "re_water_body": 4
+      "re_cr": 0,
+      "re_ro": 300,
+      "re_pa": 5000,
+      "re_other": 0
     },
     {
-      "re_previous": 3,
-      "re_water_body": 4
+      "re_cr": 100,
+      "re_ro": 300,
+      "re_pa": 5000,
+      "re_other": 0
     },
     {
-      "re_previous": 3,
-      "re_water_body": 4
+      "re_cr": 100,
+      "re_ro": 300,
+      "re_pa": 5000,
+      "re_other": 0
     },
     {
-      "re_previous": 3,
-      "re_water_body": 4
+      "re_cr": 100,
+      "re_ro": 300,
+      "re_pa": 5000,
+      "re_other": 0
     },
     {
-      "re_previous": 3,
-      "re_water_body": 4
+      "re_cr": 100,
+      "re_ro": 300,
+      "re_pa": 100,
+      "re_other": 0
     },
     {
-      "re_previous": 3,
-      "re_water_body": 4
+      "re_cr": 100,
+      "re_ro": 300,
+      "re_pa": 100,
+      "re_other": 0
     },
     {
-      "re_previous": 3,
-      "re_water_body": 2
+      "re_cr": 0,
+      "re_ro": 300,
+      "re_pa": 100,
+      "re_other": 0
     },
     {
-      "re_previous": 3,
-      "re_water_body": 2
+      "re_cr": 0,
+      "re_ro": 300,
+      "re_pa": 100,
+      "re_other": 0
     },
     {
-      "re_previous": 3,
-      "re_water_body": 2
+      "re_cr": 0,
+      "re_ro": 300,
+      "re_pa": 100,
+      "re_other": 0
     },
     {
-      "re_previous": 3,
-      "re_water_body": 2
+      "re_cr": 0,
+      "re_ro": 300,
+      "re_pa": 100,
+      "re_other": 0
     },
     {
-      "re_previous": 7,
-      "re_water_body": 2
+      "re_cr": 0,
+      "re_ro": 20,
+      "re_pa": 100,
+      "re_other": 0
     },
     {
-      "re_previous": 7,
-      "re_water_body": 2
+      "re_cr": 0,
+      "re_ro": 0,
+      "re_pa": 100,
+      "re_other": 0
     },
     {
-      "re_previous": 7,
-      "re_water_body": 2
+      "re_cr": 0,
+      "re_ro": 0,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 7,
-      "re_water_body": 2
+      "re_cr": 0,
+      "re_ro": 0,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 7,
-      "re_water_body": 2
+      "re_cr": 0,
+      "re_ro": 0,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 7,
-      "re_water_body": 2
+      "re_cr": 0,
+      "re_ro": 0,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 0,
-      "re_water_body": 2
+      "re_cr": 0,
+      "re_ro": 0,
+      "re_pa": 0,
+      "re_other": 50
     },
     {
-      "re_previous": 0,
-      "re_water_body": 2
+      "re_cr": 0,
+      "re_ro": 0,
+      "re_pa": 0,
+      "re_other": 50
     }
+  ],
+  "outflow": [
+    {
+      "out_dr": 1.1,
+      "out_other": 0
+    },
+    {
+      "out_dr": 1.1,
+      "out_other": 0
+    },
+    {
+      "out_dr": 1.1,
+      "out_other": 0
+    },
+    {
+      "out_dr": 1.1,
+      "out_other": 0
+    },
+    {
+      "out_dr": 1.1,
+      "out_other": 0
+    },
+    {
+      "out_dr": 1.1,
+      "out_other": 30
+    },
+    {
+      "out_dr": 1.1,
+      "out_other": 30
+    },
+    {
+      "out_dr": 20,
+      "out_other": 30
+    },
+    {
+      "out_dr": 20,
+      "out_other": 30
+    },
+    {
+      "out_dr": 20,
+      "out_other": 30
+    },
+    {
+      "out_dr": 20,
+      "out_other": 30
+    },
+    {
+      "out_dr": 20,
+      "out_other": 30
+    },
+    {
+      "out_dr": 20,
+      "out_other": 30
+    },
+    {
+      "out_dr": 20,
+      "out_other": 30
+    },
+    {
+      "out_dr": 50,
+      "out_other": 30
+    },
+    {
+      "out_dr": 50,
+      "out_other": 30
+    },
+    {
+      "out_dr": 50,
+      "out_other": 30
+    },
+    {
+      "out_dr": 50,
+      "out_other": 30
+    },
+    {
+      "out_dr": 50,
+      "out_other": 30
+    },
+    {
+      "out_dr": 50,
+      "out_other": 30
+    },
+    {
+      "out_dr": 50,
+      "out_other": 4
+    },
+    {
+      "out_dr": 50,
+      "out_other": 4
+    },
+    {
+      "out_dr": 50,
+      "out_other": 4
+    },
+    {
+      "out_dr": 4,
+      "out_other": 2
+    },
+    {
+      "out_dr": 2,
+      "out_other": 0
+    },
+    {
+      "out_dr": 2,
+      "out_other": 0
+    },
+    {
+      "out_dr": 2,
+      "out_other": 20
+    },
+    {
+      "out_dr": 2,
+      "out_other": 20
+    },
+    {
+      "out_dr": 2,
+      "out_other": 20
+    },
+    {
+      "out_dr": 2,
+      "out_other": 20
+    },
+    {
+      "out_dr": 2,
+      "out_other": 20
+    },
+    {
+      "out_dr": 2,
+      "out_other": 20
+    },
+    {
+      "out_dr": 2,
+      "out_other": 20
+    },
+    {
+      "out_dr": 2,
+      "out_other": 20
+    },
+    {
+      "out_dr": 2,
+      "out_other": 20
+    },
+    {
+      "out_dr": 2,
+      "out_other": 20
+    }
+  ],
+  "re_water_body": [
+    1.5,
+    1.5,
+    1.5,
+    1.5,
+    1.5,
+    1.5,
+    1.5,
+    1.5,
+    1.5,
+    1.5,
+    1.5,
+    1.5,
+    1.5,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
   ],
   "cn_value": [
     {

@@ -14,18 +14,21 @@ class WTFMethod(BaseModel):
     precipitation = models.FloatField()
     ratio = models.FloatField(null=True, blank=True)
     yearly_recharge = models.FloatField(null=True, blank=True)
+    q_in = models.ManyToManyField("QinData", blank=True, related_name="wtf_q_in_data")
 
 
-class QData(BaseModel):
-    wtf = models.ForeignKey(WTFMethod, on_delete=models.CASCADE, related_name='wtf_q_data')
-    QP_n = models.FloatField()
-    QB_n = models.FloatField()
-    Qin_n = models.FloatField()
-    Qout_n = models.FloatField()
-    Qr_n = models.FloatField()
+class QinData(BaseModel):
+    value = models.FloatField(null=True, blank=True)
+
+
+class QOutData(BaseModel):
+    wtf = models.ForeignKey(WTFMethod, on_delete=models.CASCADE, related_name='wtf_q_out_data')
+    pump = models.FloatField()
+    base = models.FloatField()
+    gw_out = models.FloatField()
 
     def __str__(self):
-        return f'{self.QP_n:.2f}, {self.QB_n:.2f}, {self.Qin_n:.2f}, {self.Qout_n:.2f}, {self.Qr_n:.2f}'
+        return f'{self.pump:.2f}, {self.base:.2f}, {self.gw_out:.2f}'
 
 
 class SPYieldData(BaseModel):
@@ -82,11 +85,17 @@ class CurveNumber(BaseModel):
 
 
 class RechargeRate(BaseModel):
-    re_previous = models.FloatField()
-    re_water_body = models.FloatField()
+    re_cr = models.FloatField(default=0)
+    re_ro = models.FloatField(default=0)
+    re_pa = models.FloatField(default=0)
+    re_other = models.FloatField(default=0)
 
 
 class SolarRadiation(models.Model):
+    value = models.FloatField()
+
+
+class ReWaterBody(models.Model):
     value = models.FloatField()
 
 
@@ -106,9 +115,13 @@ class TMeanValue(models.Model):
     value = models.FloatField()
 
 
+class OutFlow(BaseModel):
+    out_dr = models.FloatField(default=0)
+    out_other = models.FloatField(default=0)
+
+
 class EtoData(BaseModel):
     value = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
-
 
 
 class WBMethodData(models.Model):
@@ -116,6 +129,10 @@ class WBMethodData(models.Model):
     catchment_area = models.FloatField(blank=True, null=True)
     rlc = models.CharField(max_length=100, choices=constants.ClassificationChoices.choices, blank=True, null=True)
     rp = models.FloatField(blank=True, null=True)
+    rf = models.FloatField(blank=True, null=True)
+    rf_option = models.BooleanField(default=False)
+    outflow = models.ManyToManyField(OutFlow, blank=True, related_name='wb_outflow')
+    re_water_body = models.ManyToManyField(ReWaterBody, blank=True, related_name='wb_water_body')
     classification = models.CharField(max_length=100, choices=constants.ClassificationChoices.choices, blank=True,
                                       null=True)
     eto_method = models.CharField(max_length=100, choices=constants.ETO_METHOD_CHOICES)

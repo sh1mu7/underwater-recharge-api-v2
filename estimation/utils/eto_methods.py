@@ -15,18 +15,18 @@ def eto_method_validation(data):
     elif cn_value is not None and len(cn_value) != 36:
         raise serializers.ValidationError({"error": "The length of cn_value must be 36"})
     required_fields_map = {
-        1: ['latitude', 'elevation', 'eto_rs_data', 'temperature'],
+        1: ['latitude', 'elevation', 'eto_rs_data', 'temperature', 're_water_body', 'outflow', 'recharge_rate'],
         2: ['latitude', 'elevation', 'eto_sh_data', 'temperature'],
         3: ['latitude', 'elevation', 'eto_sh_data', 'temperature'],
         4: ['latitude', 'c_value', 'temperature'],
         5: ['latitude', 'elevation', 'solar_radiation', 'temperature'],
-        6: ["latitude", "temperature"],
-        7: ['latitude', 'elevation', 'solar_radiation', 'temperature'],
+        6: ["latitude", "temperature", 're_water_body', 'outflow', 'recharge_rate'],
+        7: ['latitude', 'elevation', 'solar_radiation', 'temperature', 're_water_body', 'outflow', 'recharge_rate'],
         8: ["solar_radiation", "rh_value", "temperature"],
         9: ['latitude', 'elevation', 'solar_radiation', 'temperature'],
         10: ["c_value", "solar_radiation", "temperature"],
-        11: ["c_value", 'solar_radiation', 'temperature'],
-        12: ["latitude", "solar_radiation", 'temperature', 'elevation']
+        11: ["c_value", 'solar_radiation', 'temperature', 're_water_body', 'outflow', 'recharge_rate'],
+        12: ["latitude", "solar_radiation", 'temperature', 'elevation', 're_water_body', 'outflow', 'recharge_rate']
         #     TODO: Need to add required field.
     }
 
@@ -87,11 +87,11 @@ def fao_combined_pm_method(latitude, elevation, eto_rs_data, temperature):
         es_Tmin_t = 0.6108 * math.exp((17.27 * Tmin_t) / (Tmin_t + 237.3))
         es_t = (es_Tmax_t + es_Tmin_t) / 2
         ea_t = (RH_t / 100) * es_t
-        Delta_t = 4098 * ea_t / ((Tmean_t + 237.3) ** 2)
+        Delta_t = 4098 * round(es_t, 2) / (Tmean_t + 273.3) ** 2
 
         # Calculation of Rns, Rnl, Rn
 
-        Rns_t = 0.77 * SR_t
+        Rns_t = round(0.77 * SR_t,1)
         Rnl_t = (4.903 * 10 ** -9) * 0.5 * (
                 ((Tmax_t + 273.16) ** 4 + (Tmin_t + 273.16) ** 4) * (0.34 - 0.139 * math.sqrt(ea_t)) * (
                 1.136 * SR_t / (0.75 * Ra_t)) - 0.07)
@@ -112,6 +112,18 @@ def fao_combined_pm_method(latitude, elevation, eto_rs_data, temperature):
         # Accumulate ET0 for SumET0
         SumET0 += ET0_t  # Considering 10-day periods
         eto_list.append(ET0_t)
+        print(f'Rns_t: {Rns_t}')
+
+        print((0.77) * 12.1)
+        # print(
+        #     f'Tmax: {round(Tmax_t, 2)}, Tmin: {round(Tmin_t, 2)}, RHmean: {round(RH_t, 2)}, Wind(m/s): {round(WS_t, 2)}, S.Rad: {round(SR_t, 2)} '
+        #     f'ET0_P-M: {round(ET0_t, 2)}, J-t: {round(J_t, 2)}, del: {round(del_t, 2)}, '
+        #     f'dr: {round(dr_t, 2)}, ws: {round(ws_t, 2)}, Ra: {round(Ra_t, 2)}, '
+        #     f'Tmean: {round(Tmean_t, 2)}, es(Tmax): {round(es_Tmax_t, 2)}, es(Tmin): {round(es_Tmin_t, 2)}, es: {round(es_t, 2)}, '
+        #     f'ea: {round(ea_t, 2)}, es - ea: {round(es_t - ea_t, 2)}, ∆: {round(Delta_t, 2)}, Rns: {round(Rns_t, 2)}, '
+        #     f'Rnl: {round(Rnl_t, 2)}, Rn: {round(Rn_t, 2)}, Rad.term: {round(R_t, 3)}, lambda: {round(Lambda, 4)}, '
+        #     f'gamma: {round(gamma, 4)}, Aeroterm: {round(A_t, 2)}, D (mm/d): {round(D_t, 2)}, ET0: {round(ET0_t, 2)}'
+        # )
         # data.append([
         #     round(RH_t, 2), round(WS_t, 2), round(SR_t, 2), round(Tmax_t, 2), round(Tmin_t, 2), round(Tmean_t, 2),
         #     round(p, 2), round(gamma, 2), round(J_t, 2), round(del_t, 2), round(dr_t, 2), round(ws_t, 2),
@@ -177,10 +189,19 @@ def pm_method_sh(latitude, elevation, eto_sh_data, temperature):
         # Calculation of D (Denominator part)
         D_t = Delta_t + gamma * (1 + 0.34 * WS_t)
         # Calculation of ET0 for the current period
-        ET0_t = (R_t + A_t) / D_t
+
+        ET0_t = (round(R_t, 2) + round(A_t, 2)) / round(D_t, 2)
         SumET0 += ET0_t  # Considering 10-day periods
         eto_list.append(ET0_t)
-
+        print(
+            f'Tmax: {round(Tmax_t, 2)}, Tmin: {round(Tmin_t, 2)}, RHmean: {round(RH_t, 2)}, Wind(m/s): {round(WS_t, 2)}, '
+            f'SH (hr): {round(SH_t, 2)}, ET0_P-M: {round(ET0_t, 2)}, J-t: {round(J_t, 2)}, del: {round(del_t, 2)}, '
+            f'dr: {round(dr_t, 2)}, ws: {round(ws_t, 2)}, Ra: {round(Ra_t, 2)}, N: {round(N_t, 2)}, Rs: {round(Rs_t, 2)}, '
+            f'Tmean: {round(Tmean_t, 2)}, es(Tmax): {round(es_Tmax_t, 2)}, es(Tmin): {round(es_Tmin_t, 2)}, es: {round(es_t, 2)}, '
+            f'ea: {round(ea_t, 2)}, es - ea: {round(es_t - ea_t, 2)}, ∆: {round(Delta_t, 2)}, Rns: {round(Rns_t, 2)}, '
+            f'Rnl: {round(Rnl_t, 2)}, Rn: {round(Rn_t, 2)}, Rad.term: {round(R_t, 2)}, P-atm.: {round(P, 2)}, lambda: {round(Lambda, 4)}, '
+            f'gamma: {round(gamma, 4)}, Aeroterm: {round(A_t, 2)}, D (mm/d): {round(D_t, 2)}, ET0: {round(ET0_t, 2)}'
+        )
         # print(
         #     f'RH_t: {round(RH_t, 2)}, WS_t: {round(WS_t, 2)}, SH_t: {round(SH_t, 2)}, Tmax_t: {round(Tmax_t, 2)}, '
         #     f'Tmin_t: {round(Tmin_t, 2)}, Tmean_t: {round(Tmean_t, 2)}, p: {round(P, 2)}, gamma: {round(gamma, 2)}, '
@@ -193,7 +214,7 @@ def pm_method_sh(latitude, elevation, eto_sh_data, temperature):
         # print(f'Delta_t: {Delta_t:.2f},A_t: {A_t:.2f},ET0_t: {ET0_t:.2f},D: {D_t:.2f}, Rs_t: {Rs_t:.2f},Ra_t:{Ra_t:.2f}')
         # print(
         #     f'Tmax: {round(Tmax_t, 2)}\tTmin: {round(Tmin_t, 2)}\tRHmean: {round(RH_t, 2)}\tWind(m/s): {round(WS_t, 2)}\t'
-        #     f'SH (hr): {round(SH_t, 2)}\tET0_P-M: {round(ET0_t, 2)}\tJ-t: {round(J_t, 2)}\tdel: {round(del_t, 1)}\tdr: {round(dr_t, 2)}\t'
+        #     f'SH (hr): {round(SH_t, 2)}\tET0_P-M: {round(ET0_t, 2)}\tJ-t: {round(J_t, 2)}\tdel: {round(del_t, 2)}\tdr: {round(dr_t, 2)}\t'
         #     f'ws: {round(ws_t, 2)}\tRa: {round(Ra_t, 2)}\tN: {round(N_t, 2)}\tRs: {round(Rs_t, 2)}\tTmean: {round(Tmean_t, 2)}\t'
         #     f'es(Tmax): {round(es_Tmax_t, 2)}\tes(Tmin): {round(es_Tmin_t, 2)}\tes: {round(es_t, 2)}\tea: {round(ea_t, 2)}\t'
         #     f'es - ea: {round(es_t - ea_t, 2)}\t∆: {round(Delta_t, 2)}\tRns: {round(Rns_t, 2)}\tRnl: {round(Rnl_t, 2)}\t'
@@ -295,7 +316,7 @@ def pm_method_no_rs_sh(latitude, elevation, eto_sh_data, temperature):
         # Calculation of ET0 for the current period
         ET0_t = (R_t + A_t) / D_t
         print(
-            f'del_t:{round(del_t, 1)}, ws_t:{round(ws_t, 2)},dr_t:{round(dr_t, 2)},Ra_t:{round(Ra_t, 2)},Rs_t:{round(Rs_t, 2)},Rns_t: {round(Rns_t, 2)},Rnl_t: {round(Rnl_t, 2)},Rn_t: {round(Rn_t, 2)},R_t:{round(R_t, 2)}, D_t: {round(D_t, 3)}, ET0_t:{round(ET0_t, 2)}, J-t: {J_t}')
+            f'del_t:{round(del_t, 2)}, ws_t:{round(ws_t, 2)},dr_t:{round(dr_t, 2)},Ra_t:{round(Ra_t, 2)},Rs_t:{round(Rs_t, 2)},Rns_t: {round(Rns_t, 2)},Rnl_t: {round(Rnl_t, 2)},Rn_t: {round(Rn_t, 2)},R_t:{round(R_t, 2)}, D_t: {round(D_t, 3)}, ET0_t:{round(ET0_t, 2)}, J-t: {J_t}')
 
         # Accumulate ET0 for SumET0
         SumET0 += ET0_t  # Considering 10-day periods
@@ -340,56 +361,57 @@ def pm_method_no_rs_sh(latitude, elevation, eto_sh_data, temperature):
 
 
 def fao_blaney_criddle_method(latitude, c_values, temperature, p_value):
-    # TODO: Check list pass.
     """
-    Calculate reference evapotranspiration (ETO) using the FAO Blaney-Criddle method.
+    Calculates reference evapotranspiration (ET0) using the FAO Blaney-Criddle method.
 
     Args:
-        latitude (float): Latitude of the location in decimal degrees.
-        c_values (list of float): List of C values for each time period.
-        temperature (list of float): List of  temperature values for each time period.
-        p_value (list of float): List of p values for each time period.
+        latitude (float): Latitude in degrees.
+        c_values (list): List of crop coefficients for each month.
+        temperature (list): List of average monthly temperatures in degrees Celsius.
+        p_value (float): Percent of daytime hours (optional, default is None).
 
     Returns:
-        float: Calculated reference evapotranspiration (ETO) value.
+        float: Yearly reference evapotranspiration (ET0) in millimeters.
     """
-    # Convert latitude to radians
-    Lrad = latitude * math.pi / 180
 
-    # Initialize variables
-    sumN = 0
+    # Calculate Lrad (daylength factor)
+    lrad = latitude * 22 / (180 * 7)
+
+    # Assume table_2 (C values) is provided as a separate function or variable
+    # Replace this with your logic to access C values based on month
+
+    # Calculate N (daylength hours) for each month
+    sum_n = 0
+    n_values = []
+    for t in range(1, 37):
+        j_t = 10 * t - 5
+        delta_t = 0.409 * math.sin(0.0172 * j_t - 1.39)
+        dr_t = 1 + 0.033 * math.cos(0.0172 * j_t)
+        ws_t = math.acos(-math.tan(lrad) * math.tan(delta_t))
+        n_t = 7.64 * ws_t
+        sum_n += n_t
+        n_values.append(n_t)
+
+    # Calculate YN (yearly sum of N)
+    yn = sum(n_values[:36] * 10) + n_values[35] * 5
+
+    # Calculate p (percentage of daylight hours) for each month (if p_value not provided)
+
+    p_values = [n / yn * 100 for n in n_values]
+
+    # Calculate ET0 for each month
+    sum_et0 = 0
     eto_list = []
+    for t in range(36):
+        tmean = (temperature[t]['t_max'] + temperature[t]['t_min']) / 2
+        et0 = c_values[t] * p_values[t] * (0.46 * tmean + 8)
+        sum_et0 += et0 * 10
+        eto_list.append(et0)
 
-    # Create DataFrame to store intermediate values
-
-    # Calculate yearly N (YN) and p values
-    YN = 0
-    csv_data = []
-    for i in range(36):
-        T_mean = (temperature[i]['t_max'] + temperature[i]['t_min']) / 2
-        J_t = 10 * (i + 1) - 5
-        del_t = 0.409 * math.sin(0.0172 * J_t - 1.39)
-        dr_t = 1 + 0.033 * math.cos(0.0172 * J_t)
-        ws_t = math.acos(-math.tan(Lrad) * math.tan(del_t))
-        N_t = 7.64 * ws_t
-        sumN += N_t
-        YN = N_t * 10
-        #
-        # print(
-        #     f'Lrad: {Lrad}, del_t: {round(del_t, 2)},dr_t: {round(dr_t, 2)},ws_t: {round(ws_t, 2)}, N_t: {round(N_t, 2)},N_t*10: {round(N_t * 10, 2)}')
-
-        # Calculate p values
-        p_t = p_value[i]
-
-        # Calculate ET0 values
-        c_t = c_values[i]
-        ET0_t = c_t * p_t * (0.46 * T_mean + 8)
-        print(f'ET0_calculation: {round(ET0_t, 2)}')
-        eto_list.append(ET0_t)
-    # Calculate yearly ET0 (YET0)
-    SumET0 = sum(eto_list)
-    YET0 = SumET0
-    return YET0, eto_list
+    # Calculate YET0 (yearly reference ET0)
+    YETO = sum_et0 + eto_list[35] * 5
+    print(f'p_value: {p_values}, n_values: {n_values}, et0_values: {eto_list}')
+    return YETO, eto_list
 
 
 def makkink_method(latitude, elevation, solar_radiation, temperature):
@@ -600,6 +622,7 @@ def priestley_taylor_method(latitude, elevation, solar_radiation, temperature):
     """
     # Convert latitude to radians
     Lrad = latitude * math.pi / 180
+    print(f'LRAD: {Lrad}')
     eto_list = []
     # Constants
     lambda_value = 2.4536
@@ -732,7 +755,6 @@ def abtew_method(c_value, solar_radiation):
         et0 = c * ki * rs_value / lambda_value
         sum_et0 += et0
         data.append([round(solar_radiation[j], 2), round(c_value[j], 2), round(et0, 2)])
-        print(f'solar_radiation: {rs_value}, c_value: {c_value[j]}, et0: {round(et0, 2)}')
         eto_list.append(et0)
 
     columns = [
@@ -746,10 +768,10 @@ def abtew_method(c_value, solar_radiation):
     return YET0, eto_list
 
 
-def de_bruin_method(solar_radiation, temperature, latitude, elevation):
+def de_bruin_method(solar_radiation, temperature, latitude, elevation, c_value):
     # Constants
     Lambda = 2.4536  # Latent heat of vaporization (MJ/kg)
-    C = 0.65  # Given constant
+    # Given constant
 
     # Convert latitude to radians
     # Lrad = latitude * math.pi / 180
@@ -764,6 +786,7 @@ def de_bruin_method(solar_radiation, temperature, latitude, elevation):
     data = []
     eto_list = []
     for i in range(36):
+        C = c_value[i]
         Tmax = temperature[i]['t_max']
         Tmin = temperature[i]['t_min']
         Tmean = (Tmax + Tmin) / 2

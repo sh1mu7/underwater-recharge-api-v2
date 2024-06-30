@@ -20,9 +20,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'coreapp.apps.CoreappConfig',
     'estimation.apps.EstimationConfig',
-    'utility.apps.UtilityConfig',
-    'drf_spectacular_sidecar',  # required for Django collectstatic discovery
-]
+    'utility.apps.UtilityConfig',]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

@@ -1,16 +1,22 @@
 from rest_framework import serializers
 
 from estimation import constants
-from estimation.models import QData, SPYieldData, WTFMethod, WBMethodData, EtoRsData, Temperature, EtoShData, \
+from estimation.models import QOutData, SPYieldData, WTFMethod, WBMethodData, EtoRsData, Temperature, EtoShData, \
     LandUseArea, CropCoefficient, CurveNumber, RechargeRate, CValue, PValue, RHValue, SolarRadiation, TMeanValue, \
-    EtoData
+    EtoData, OutFlow, QinData, ReWaterBody
 from estimation.utils.eto_methods import eto_method_validation
 
 
-class QDataSerializer(serializers.ModelSerializer):
+class QOutDataSerializer(serializers.ModelSerializer):
     class Meta:
-        model = QData
-        fields = ['QP_n', 'QB_n', 'Qin_n', 'Qout_n', 'Qr_n']
+        model = QOutData
+        fields = ['pump', 'base', 'gw_out']
+
+
+class QinDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QinData
+        fields = ('value',)
 
 
 class SPYieldDataSerializer(serializers.ModelSerializer):
@@ -21,21 +27,30 @@ class SPYieldDataSerializer(serializers.ModelSerializer):
 
 class WTFDataSerializer(serializers.ModelSerializer):
     sp_yield_data = SPYieldDataSerializer(many=True, read_only=True)
-    wtf_q_data = QDataSerializer(many=True, read_only=True)
+    wtf_q_out_data = QOutDataSerializer(many=True, read_only=True)
+    q_in = QinDataSerializer(many=True, read_only=True)
 
     class Meta:
         model = WTFMethod
-        fields = ['id', 'catchment_area', 'wt_max', 'wt_min', 'num_layers',
-                  'is_precipitation_given', 'precipitation', 'wtf_q_data', 'sp_yield_data']
+        fields = ['id', 'catchment_area', 'wt_max', 'wt_min', 'num_layers', 'q_in',
+                  'is_precipitation_given', 'precipitation',
+                  'wtf_q_out_data', 'sp_yield_data']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        q_in_values = instance.q_in.all().values_list('value', flat=True)
+        representation['q_in'] = list(q_in_values)
+        return representation
 
 
 class WTFMethodSerializer(serializers.ModelSerializer):
     sp_yield_data = SPYieldDataSerializer(many=True, read_only=False)
-    Q_data = QDataSerializer(many=True, read_only=False)
+    q_out = QOutDataSerializer(many=True, read_only=False)
+    q_in = serializers.ListSerializer(child=serializers.FloatField(required=False), required=False)
 
     class Meta:
         model = WTFMethod
-        fields = ['catchment_area', 'wt_max', 'wt_min', 'num_layers', 'precipitation', 'Q_data', 'sp_yield_data']
+        fields = ['catchment_area', 'wt_max', 'wt_min', 'num_layers', 'precipitation', 'q_out', 'q_in', 'sp_yield_data']
 
     def validate(self, data):
         """
@@ -45,7 +60,7 @@ class WTFMethodSerializer(serializers.ModelSerializer):
         sp_yield_data = data.get('sp_yield_data', [])
         if num_layers is not None and len(sp_yield_data) != num_layers:
             raise serializers.ValidationError("Number of layers does not match the provided data.")
-        input_values = data.get('Q_data', [])
+        input_values = data.get('q_out', [])
         print(len(input_values))
         if len(input_values) != 12:
             raise serializers.ValidationError("Exactly 12 sets of input values are required.")
@@ -53,8 +68,8 @@ class WTFMethodSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         sp_yield_data = validated_data.pop('sp_yield_data')
-        q_data = validated_data.pop('Q_data')
-
+        q_data = validated_data.pop('q_out')
+        q_in_data = validated_data.pop('q_in')
         print("Creating WTFMethod instance with data:", validated_data)
         # Create WTFMethod instance
         wtf_method = WTFMethod.objects.create(**validated_data)
@@ -63,11 +78,14 @@ class WTFMethodSerializer(serializers.ModelSerializer):
         for sp_yield in sp_yield_data:
             print("Creating SPYieldData instance with data:", sp_yield)
             SPYieldData.objects.create(wtf_method=wtf_method, **sp_yield)
+        # for q_in in q_in_data:
+        #     print("Creating SPYieldData instance with data:", q_in)
+        #     QinData.objects.create(wtf_method=wtf_method, **q_in)
 
-        # Create QData instances
+        # Create QOutData instances
         for q in q_data:
-            print("Creating QData instance with data:", q)
-            QData.objects.create(wtf_method=wtf_method, **q)
+            print("Creating QOutData instance with data:", q)
+            QOutData.objects.create(wtf_method=wtf_method, **q)
 
         print("WTFMethod instance created successfully:", wtf_method)
         return wtf_method
@@ -113,6 +131,12 @@ class RechargeRateSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class OutFlowSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OutFlow
+        fields = ('out_dr', 'out_other')
+
+
 class CropCoefficientSerializer(serializers.ModelSerializer):
     class Meta:
         model = CropCoefficient
@@ -138,6 +162,7 @@ class WBMethodSerializer(serializers.Serializer):
     solar_radiation = serializers.ListSerializer(child=serializers.FloatField(required=False), required=False)
     t_mean_value = serializers.ListSerializer(child=serializers.FloatField(required=False), required=False)
     p_value = serializers.ListSerializer(child=serializers.FloatField(required=False), required=False)
+    re_water_body = serializers.ListSerializer(child=serializers.FloatField(required=False), required=False)
     kc_value = CropCoefficientSerializer(many=True, required=False)
     cn_value = CurveNumberSerializer(many=True, required=False)
     eto_rs_data = EtoRsDataSerializer(many=True, required=False)
@@ -145,6 +170,9 @@ class WBMethodSerializer(serializers.Serializer):
     elevation = serializers.FloatField(required=False)
     land_use_area = LandUseAreaSerializer(many=True, required=True)
     recharge_rate = RechargeRateSerializer(many=True, required=False)
+    outflow = OutFlowSerializer(many=True, required=False)
+    rf = serializers.FloatField(required=False)
+    rf_option = serializers.BooleanField(required=False)
 
     def validate(self, attrs):
         eto_method_validation(attrs)
@@ -377,6 +405,12 @@ class EtoDataSerializer(serializers.ModelSerializer):
         fields = ['value', ]
 
 
+class ReWaterBodySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReWaterBody
+        fields = ['value']
+
+
 class WBMethodDataSerializer(serializers.ModelSerializer):
     temperature = TemperatureSerializer(many=True)
     kc_value = CropCoefficientSerializer(many=True)
@@ -391,6 +425,8 @@ class WBMethodDataSerializer(serializers.ModelSerializer):
     solar_radiation = SolarRadiationSerializer(many=True)
     t_mean_value = TMeanValueSerializer(many=True)
     eto_list = EtoDataSerializer(many=True)
+    outflow = OutFlowSerializer(many=True)
+    re_water_body = ReWaterBodySerializer(many=True)
 
     class Meta:
         model = WBMethodData
@@ -400,12 +436,14 @@ class WBMethodDataSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         c_values = [item['value'] for item in representation.pop('c_value', [])]
         p_values = [item['value'] for item in representation.pop('p_value', [])]
+        re_water_body = [item['value'] for item in representation.pop('re_water_body', [])]
         rh_values = [item['value'] for item in representation.pop('rh_value', [])]
         eto_list = [item['value'] for item in representation.pop('eto_list', [])]
         solar_radiation_values = [item['value'] for item in representation.pop('solar_radiation', [])]
         t_mean_values = [item['value'] for item in representation.pop('t_mean_value', [])]
         representation['c_value'] = c_values
         representation['p_value'] = p_values
+        representation['re_water_body'] = re_water_body
         representation['rh_value'] = rh_values
         representation['solar_radiation'] = solar_radiation_values
         representation['t_mean_value'] = t_mean_values
