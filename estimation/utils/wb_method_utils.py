@@ -298,13 +298,6 @@ def calculate_wb(catchment_area, land_use_area, kc_value, cn_value, p_value, tem
     sumEtp = 0
     sumEta = 0
     v_sum_re_net = 0
-    eto_list1 = [
-        1.81, 1.85, 1.90, 1.99, 2.05, 2.11, 3.37, 3.43, 3.49, 4.14,
-        4.17, 4.19, 3.77, 3.78, 3.79, 3.13, 3.13, 3.13, 3.34, 3.34,
-        3.33, 2.74, 2.73, 2.72, 2.77, 2.75, 2.72, 2.81, 2.76, 2.71,
-        2.13, 2.08, 2.03, 1.36, 1.34, 1.33
-    ]
-    results = []
     yearly_rainfall = 0
 
     v_sum_runoff = 0
@@ -328,18 +321,13 @@ def calculate_wb(catchment_area, land_use_area, kc_value, cn_value, p_value, tem
             return response_data
 
     for i in range(36):
-        row = {}
-        row2 = {}
         for j in range(4):
             kc = kc_value[i]['kc_a{}'.format(j + 1)]
             p = p_value[i]
             c = cn_value[i]['cn{}'.format(j + 1)]
             land = (land_use_area[i]['a{}'.format(j + 1)] / 100) * catchment_area
-
-            eto = eto_list1[i]
             et_rk = eto_list1[0] * kc * 10
             sumEtp += et_rk
-            # print(f'et_rk{j}___{i}: {et_rk}', end=', ' if j < 3 else '\n')
 
             v_sum_etp += (et_rk * 10) * land * catchment_area * 10
             if p < et_rk:
@@ -367,22 +355,6 @@ def calculate_wb(catchment_area, land_use_area, kc_value, cn_value, p_value, tem
                 v_re_jk = 0
             v_sum_re += v_re_jk
 
-            row[f'A{j + 1}'] = v_re_jk
-            # row2[f'B{j + 1}'] = runoff
-            # print(f'index{i}_{j}: {eta_rk} + {ro_jk} = {round(eta_rk + ro_jk, 1)}')
-
-        print(
-            f"A1: {round(row['A1'], 1)}  "
-            f"A2: {round(row['A2'], 1)}  "
-            f"A3: {round(row['A3'], 1)}  "
-            f"A4: {round(row['A4'], 1)}  "
-        )
-        # results.append(row)
-
-    print(f'v_sum_re_wb: {v_sum_re_wb}')
-    print(f'v_sum_rq: {v_sum_rq}')
-
-    print(f'runoff_list: {runoff_list}')
     yearly_rainfall = sum(p_value)
     v_ren = v_sum_re
     frd = sum_pw
@@ -394,51 +366,32 @@ def calculate_wb(catchment_area, land_use_area, kc_value, cn_value, p_value, tem
     if rf_option == 1:
         rad *= rf
         ratio_ra_p = 100 * rad / sum(p_value)
-        ratio_ro_p = 100 * ro / sum(p_value)
+        if rf != 0:
+            ratio_ro_p = 100 * ro / (rf * sum(p_value))
+        else:
+            ratio_ro_p = 0  # or any appropriate value or handling for rf == 0
     else:
         ratio_ra_p = rad / sum(p_value)
         ratio_ro_p = ro / sum(p_value)
-    ai = sum(p_value) / v_sum_etp
+
+    ai = sum(p_value) / sumEtp
     pra = ratio_ra_p * 100
     pro = ratio_ro_p * 100
     net_recharge_volume = v_sum_re + v_sum_re_wb + v_sum_rq - v_re_out
     net_recharge_depth = (net_recharge_volume / catchment_area) * 0.001
     rainfall_percentage = 100 * (net_recharge_depth / sum(p_value))
-    total_runoff = v_sum_runoff
-    aridity_index = net_recharge_volume / sum(p_value)
-    # print(f"Yearly Rainfall (mm) = {sum(p_value)}")
-    # print(f"Yearly Recharge (mm) = {rad}")
-    # print(f"Yearly Runoff (mm) = {ro}")
-    # print(f"Yearly Recharge as a percentage of Precipitation = {pra}")
-    # print(f"Yearly Runoff as percentage of Rainfall = {pro}")
-    # print(f"Aridity Index (AI) = {ai}")
-    # print(f"net_recharge_volume: {net_recharge_volume}")
-    # print(f"net_recharge_depth: {net_recharge_depth}")
-    # print(f're as % of rainfall: {rainfall_percentage}')
-    # print(f'total_runoff: {total_runoff}')
-    # # print(f'aridity_index: {aridity_index}')
-    # df = pd.DataFrame(results)
-    # df.to_csv('kc_values.csv', index=False)
+    total_runoff = v_sum_runoff / (catchment_area * 1000)
+    # aridity_index = net_recharge_volume / sum(p_value)
 
-    print(f'net_recharge_volume: {(net_recharge_volume)}')
-    print(f'total_runoff: {(total_runoff)}')
-    print(f'net_recharge_depth: {round(net_recharge_depth, 0)}')
-    print(f'rainfall_percentage: {round(rainfall_percentage, 1)}')
-    print(f'v_sum_re_wb + v_sum_rq + v_re_out + v_sum_re: {(v_sum_re_wb)}, {v_sum_rq}, {v_re_out}, {v_sum_re}')
     response_data = {
-        "----------": '------------------------------------',
-        "net_recharge_volume": round(net_recharge_volume, 2),
-        "net_recharge_depth": round(net_recharge_depth, 2),
-        "rainfall_percentage": round(rainfall_percentage, 2),
-        "total_runoff": round(total_runoff, 2),
-        "aridity_index": round(aridity_index, 2),
-        "---------": '------------------------------------',
-        "Yearly Rainfall (mm)": sum(p_value),
-        "Yearly Recharge (mm)": rad,
-        "Yearly Runoff (mm)": ro,
-        "Yearly Recharge as a percentage of Precipitation": pra,
-        "Yearly Runoff as percentage of Rainfall": pro,
-        "Aridity Index (AI)": ai
+        "Yearly Rainfall (mm)": round(yearly_rainfall, 2),
+        "Yearly Recharge (mm)": round(net_recharge_depth, 2),
+        "Yearly Runoff (mm)": round(total_runoff, 2),
+        "rainfall_percentage (%)": round(rainfall_percentage, 2),
+
+        # "Yearly Recharge as a percentage of Precipitation": pra,
+        # "Yearly Runoff as percentage of Rainfall": pro,
+        # "Aridity Index (AI)": ai
         # Include other data as needed
     }
     return response_data
